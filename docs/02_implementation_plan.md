@@ -4,25 +4,20 @@ This document records the concrete implementation plan for ASAP: Adaptive Spheri
 
 ## 1. Current local status
 
-### Existing repositories
+### Project boundary
 
 - ASAP project root: `/root/autodl-tmp/ASAP`
-- Existing detection backend candidate: `/root/autodl-tmp/LiDAR_SPD/OpenPCDet_uni`
-- Another OpenPCDet copy: `/root/autodl-tmp/OpenPCDet`
-- Existing related code under `/root/autodl-tmp/LiDAR_SPD/`:
-  - `OpenPCDet_uni/`
-  - `PointRCNN-UniversalAttack/`
-  - `CAMGA/`
-  - `MNAD/`
-  - `mmdetection3d/`
+- ASAP is treated as a new and independent project.
+- Legacy local directories, especially `/root/autodl-tmp/LiDAR_SPD/`, are not part of ASAP.
+- If an old dependency is still useful, re-clone it from its upstream Git repository under `/root/autodl-tmp/ASAP/third_party/`, remove the cloned project's inner `.git` directory, preserve its license file, and document its copyright and provenance in `third_party/README.md`.
+- The preferred detector backend location is therefore `/root/autodl-tmp/ASAP/third_party/OpenPCDet/`, created from a fresh upstream clone when needed.
 
 ### Existing data and weights
 
-- `/root/autodl-tmp/OpenPCDet/data/kitti/` currently only contains `ImageSets/` split files.
-- No real KITTI point cloud data was found, especially no `velodyne/` directory.
-- `OpenPCDet_uni/checkpoints/` currently only contains a nuScenes CenterPoint checkpoint, not a KITTI PointPillars checkpoint.
-- `mmdetection3d/` has a KITTI PointPillars checkpoint, but it belongs to the MMDetection3D model format and should not be mixed directly with OpenPCDet unless we intentionally switch backend.
-- `PointRCNN-UniversalAttack/` has PointRCNN-related checkpoints, useful later for attack references but not the first OpenPCDet PointPillars baseline.
+- No real KITTI point cloud data has been placed under `/root/autodl-tmp/ASAP/data/kitti/` yet.
+- KITTI point clouds, labels, calibration files, and images should be placed under the ASAP data directory and must not be committed to Git.
+- Detector checkpoints should be placed under `/root/autodl-tmp/ASAP/checkpoints/` or `/root/autodl-tmp/ASAP/weights/`, and must not be committed to Git.
+- MMDetection3D checkpoints should not be mixed directly with OpenPCDet unless we intentionally switch the detector backend.
 
 ## 2. Which KITTI data is needed
 
@@ -96,7 +91,7 @@ Use the ASAP project data layout:
 
 The KITTI files should live under the ASAP project directory, but they must not be committed to Git. The repository `.gitignore` keeps `data/**` ignored while preserving `data/.gitkeep`.
 
-OpenPCDet_uni should be treated as an external detection backend. When OpenPCDet needs its conventional `data/kitti` path, expose the ASAP dataset to it by symlink or by an ASAP-specific dataset config, instead of storing the real data under the old `LiDAR_SPD` project.
+OpenPCDet should be treated as an external detection backend. When OpenPCDet needs its conventional `data/kitti` path, expose the ASAP dataset to it by symlink or by an ASAP-specific dataset config, instead of storing the real data under any legacy project.
 
 ## 3. Stage A: prepare KITTI and OpenPCDet baseline
 
@@ -123,7 +118,14 @@ Before generating infos, make the OpenPCDet backend see the ASAP dataset path. T
 /root/autodl-tmp/ASAP/data/kitti/
 ```
 
-If using OpenPCDet_uni unchanged, its `data/kitti` path should point to the ASAP dataset through a symlink. Then run from `/root/autodl-tmp/LiDAR_SPD/OpenPCDet_uni`:
+If using OpenPCDet unchanged, its `data/kitti` path should point to the ASAP dataset through a symlink:
+
+```text
+/root/autodl-tmp/ASAP/third_party/OpenPCDet/data/kitti
+  -> /root/autodl-tmp/ASAP/data/kitti
+```
+
+Then run from `/root/autodl-tmp/ASAP/third_party/OpenPCDet`:
 
 ```bash
 python -m pcdet.datasets.kitti.kitti_dataset create_kitti_infos tools/cfgs/dataset_configs/kitti_dataset.yaml
@@ -150,19 +152,19 @@ tools/cfgs/kitti_models/pointpillar.yaml
 Save it under:
 
 ```text
-/root/autodl-tmp/LiDAR_SPD/OpenPCDet_uni/checkpoints/
+/root/autodl-tmp/ASAP/checkpoints/openpcdet/
 ```
 
-The existing nuScenes CenterPoint checkpoint is not suitable for KITTI PointPillars evaluation.
+The checkpoint must match OpenPCDet's KITTI PointPillars config. NuScenes CenterPoint checkpoints or MMDetection3D-format checkpoints are not suitable for this first OpenPCDet KITTI baseline.
 
 ### A4. Run clean PointPillars validation
 
-Run from `/root/autodl-tmp/LiDAR_SPD/OpenPCDet_uni`:
+Run from `/root/autodl-tmp/ASAP/third_party/OpenPCDet`:
 
 ```bash
 python tools/test.py \
   --cfg_file tools/cfgs/kitti_models/pointpillar.yaml \
-  --ckpt checkpoints/<kitti_pointpillar_checkpoint>.pth \
+  --ckpt /root/autodl-tmp/ASAP/checkpoints/openpcdet/<kitti_pointpillar_checkpoint>.pth \
   --batch_size 4
 ```
 

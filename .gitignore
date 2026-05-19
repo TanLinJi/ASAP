@@ -62,3 +62,6 @@ dist/
 third_party/**
 !third_party/.gitkeep
 !third_party/README.md
+
+# Reference papers (PDFs are kept local only, not committed)
+docs/references/*.pdf
