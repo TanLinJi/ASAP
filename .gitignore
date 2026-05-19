@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Environments
+.venv/
+venv/
+env/
+conda-env/
+
+# IDE/editor
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+*.log
+logs/
+wandb/
+mlruns/
+tensorboard/
+
+# Local data and generated artifacts
+data/**
+!data/.gitkeep
+outputs/**
+!outputs/.gitkeep
+weights/**
+!weights/.gitkeep
+checkpoints/**
+!checkpoints/.gitkeep
+
+# Large numeric artifacts
+*.npy
+*.npz
+*.pkl
+*.pickle
+*.h5
+*.hdf5
+*.bin
+*.pth
+*.pt
+*.ckpt
+*.onnx
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# External repositories
+third_party/**
+!third_party/.gitkeep
+!third_party/README.md

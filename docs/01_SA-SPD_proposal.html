@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>ASAP: Adaptive Spherical Anomaly-Guided Purification Against LiDAR Point Cloud Attacks — ICASSP 2026 Proposal</title>
+<style>
+:root{
+  --c-text:#e2e8f0; --c-muted:#94a3b8; --c-heading:#f1f5f9;
+  --c-accent:#60a5fa; --c-bg:#0b1220; --c-bg-soft:#111827;
+  --c-border:#1f2937; --c-code-bg:#0f172a; --c-code-text:#e2e8f0;
+  --c-row-stripe:#0e1626;
+  --c-blue:#93c5fd; --c-blue-bg:#16243d; --c-blue-bd:#2563eb;
+  --c-green:#6ee7b7; --c-green-bg:#0b3a2c; --c-green-bd:#10b981;
+  --c-red:#fca5a5; --c-red-bg:#3a1414; --c-red-bd:#ef4444;
+  --c-warn-bg:#3b2a08; --c-warn-bd:#f59e0b; --c-warn-lb:#fcd34d;
+  --c-ok-bg:#0b3a2c; --c-ok-bd:#10b981; --c-ok-lb:#6ee7b7;
+  --c-purple:#d8b4fe; --c-purple-bg:#241433; --c-purple-bd:#8b5cf6;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--c-bg);color:var(--c-text);
+  font-family:"Inter","Helvetica Neue",Arial,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  font-size:15px;line-height:1.7}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:var(--c-bg)}
+::-webkit-scrollbar-thumb{background:#1f2937;border-radius:5px}
+::-webkit-scrollbar-thumb:hover{background:#334155}
+.layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+aside.toc{position:sticky;top:0;height:100vh;overflow-y:auto;
+  background:var(--c-bg-soft);border-right:1px solid var(--c-border);padding:24px 18px}
+aside.toc h2{font-size:13px;letter-spacing:.12em;color:var(--c-muted);
+  text-transform:uppercase;margin:0 0 16px 0;font-weight:600}
+aside.toc ol{list-style:none;padding:0;margin:0}
+aside.toc li{margin:4px 0;font-size:14px}
+aside.toc a{display:block;padding:5px 8px;border-radius:6px;color:var(--c-text);text-decoration:none;
+  transition:background .15s,color .15s}
+aside.toc a:hover{background:rgba(96,165,250,0.1);color:var(--c-accent)}
+aside.toc .grp{margin-top:18px;font-size:12px;color:var(--c-muted);
+  text-transform:uppercase;letter-spacing:.08em;padding-left:8px}
+main{padding:36px 56px;max-width:1100px}
+h1{font-size:30px;color:var(--c-heading);margin:0 0 8px 0;font-weight:700}
+h1 .sub{display:block;font-size:14px;color:var(--c-muted);font-weight:400;margin-top:8px}
+h2{font-size:22px;color:var(--c-heading);margin:42px 0 14px 0;padding-bottom:8px;
+  border-bottom:1px solid var(--c-border);font-weight:600}
+h3{font-size:17px;color:var(--c-heading);margin:28px 0 10px 0;font-weight:600}
+h4{font-size:15px;color:var(--c-blue);margin:18px 0 8px 0;font-weight:600}
+p{margin:8px 0}
+ul,ol{padding-left:22px}
+li{margin:4px 0}
+strong{color:var(--c-heading)}
+em{color:var(--c-blue);font-style:normal}
+code{background:var(--c-code-bg);color:var(--c-blue);padding:2px 6px;border-radius:4px;
+  font-family:"Fira Code","JetBrains Mono",Consolas,monospace;font-size:13.5px}
+pre{background:var(--c-code-bg);border:1px solid var(--c-border);border-radius:8px;
+  padding:14px 16px;overflow-x:auto;font-family:"Fira Code","JetBrains Mono",Consolas,monospace;
+  font-size:13.5px;line-height:1.6;color:var(--c-code-text)}
+pre .kw{color:#fb923c}
+pre .str{color:#86efac}
+pre .num{color:#93c5fd}
+pre .com{color:#94a3b8;font-style:italic}
+pre .fn{color:#d8b4fe}
+table{width:100%;border-collapse:collapse;margin:14px 0;background:var(--c-bg-soft);
+  border:1px solid var(--c-border);border-radius:8px;overflow:hidden}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--c-border);font-size:14px}
+th{background:#0f172a;color:var(--c-heading);font-weight:600}
+tr:nth-child(even) td{background:var(--c-row-stripe)}
+tr:last-child td{border-bottom:none}
+td.center,th.center{text-align:center}
+td.num{font-family:"Fira Code",Consolas,monospace;color:var(--c-blue)}
+.muted{color:var(--c-muted);font-size:12px;font-weight:400}
+.callout{border-left:3px solid var(--c-blue-bd);background:var(--c-blue-bg);
+  padding:12px 16px;margin:14px 0;border-radius:6px}
+.callout.warn{border-left-color:var(--c-warn-bd);background:var(--c-warn-bg)}
+.callout.warn .label{color:var(--c-warn-lb)}
+.callout.ok{border-left-color:var(--c-ok-bd);background:var(--c-ok-bg)}
+.callout.ok .label{color:var(--c-ok-lb)}
+.callout.bad{border-left-color:var(--c-red-bd);background:var(--c-red-bg)}
+.callout.bad .label{color:var(--c-red)}
+.callout.purple{border-left-color:var(--c-purple-bd);background:var(--c-purple-bg)}
+.callout.purple .label{color:var(--c-purple)}
+.callout .label{display:block;font-size:12px;letter-spacing:.12em;text-transform:uppercase;
+  font-weight:600;margin-bottom:6px;color:var(--c-blue)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin:14px 0}
+.card{background:var(--c-bg-soft);border:1px solid var(--c-border);border-radius:8px;padding:14px 16px}
+.card h4{margin-top:0}
+.card.blue{border-left:3px solid var(--c-blue-bd)}
+.card.green{border-left:3px solid var(--c-green-bd)}
+.card.red{border-left:3px solid var(--c-red-bd)}
+.card.purple{border-left:3px solid var(--c-purple-bd)}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11.5px;
+  font-weight:600;margin-right:4px}
+.tag.b{background:var(--c-blue-bg);color:var(--c-blue);border:1px solid var(--c-blue-bd)}
+.tag.g{background:var(--c-green-bg);color:var(--c-green);border:1px solid var(--c-green-bd)}
+.tag.r{background:var(--c-red-bg);color:var(--c-red);border:1px solid var(--c-red-bd)}
+.tag.p{background:var(--c-purple-bg);color:var(--c-purple);border:1px solid var(--c-purple-bd)}
+.formula{background:var(--c-code-bg);border:1px dashed var(--c-border);padding:12px 16px;
+  border-radius:6px;font-family:"Fira Code",Consolas,monospace;font-size:14px;margin:10px 0}
+.formula .var{color:var(--c-blue)}
+.formula .op{color:#fb923c}
+.formula .num{color:#86efac}
+svg.diagram{background:var(--c-bg-soft);border:1px solid var(--c-border);border-radius:8px;
+  display:block;margin:14px auto;max-width:100%}
+footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--c-border);
+  color:var(--c-muted);font-size:13px;text-align:center}
+</style>
+</head>
+<body>
+<div class="layout">
+<aside class="toc">
+<h2>Contents</h2>
+<ol>
+<li><a href="#meta">0. 项目元信息</a></li>
+<div class="grp">Part I 背景与动机</div>
+<li><a href="#abbr">1. 缩写速查表</a></li>
+<li><a href="#paper">2. LiDAR点云对抗攻击与SPU净化</a></li>
+<li><a href="#weak">3. 点云对抗防御局限</a></li>
+<div class="grp">Part II 方法设计</div>
+<li><a href="#overview">4. ASAP 对抗防御框架</a></li>
+<li><a href="#m1">5. 模块一：自适应半径</a></li>
+<li><a href="#m2">6. 模块二：异常打分器</a></li>
+<li><a href="#m3">7. 模块三：选择性扩散</a></li>
+<li><a href="#loss">8. 训练目标</a></li>
+<div class="grp">Part III 实验</div>
+<li><a href="#exp">9. 点云对抗攻击实验设计</a></li>
+<li><a href="#tables">10. 对抗鲁棒性主表模板</a></li>
+<li><a href="#abl">11. Ablation 设计</a></li>
+<div class="grp">Part IV 工程</div>
+<li><a href="#timeline">12. 4个月时间线</a></li>
+<li><a href="#risk">13. 风险与备选方案</a></li>
+<li><a href="#code">14. 关键伪代码</a></li>
+<li><a href="#paperstructure">15. 4页 ICASSP 写作结构</a></li>
+<li><a href="#next">16. 下一步立即行动</a></li>
+</ol>
+</aside>
+<main>
+<h1>ASAP: Adaptive Spherical Anomaly-Guided Purification Against LiDAR Point Cloud Attacks</h1>
+
+<section id="meta">
+<h2>0. 项目元信息</h2>
+<div class="grid-2">
+<div class="card blue">
+<h4>投稿目标</h4>
+<p><strong>会议</strong>：ICASSP 2026（IEEE International Conference on Acoustics, Speech and Signal Processing）</p>
+<p><strong>篇幅</strong>：4 页正文 + 1 页参考文献（IEEE 双栏）</p>
+<p><strong>预计 deadline</strong>：2026 年 9 月（abstract 通常早 1 周）</p>
+<p><strong>研究主题</strong>：LiDAR point cloud adversarial attacks and defenses for 3D object detection</p>
+<p><strong>核心问题</strong>：在点扰动（point perturbation）和点注入（point injection）攻击下，提高 3D object detector 的对抗鲁棒性，同时尽量保持 clean mAP 与推理速度。</p>
+<p><strong>领域 track</strong>：Image, Video &amp; Multimedia Signal Processing / 3D Vision / Multimedia Security</p>
+</div>
+<div class="card green">
+<h4>工程基础</h4>
+<p><strong>启发来源</strong>：LiDAR-SPD（ICASSP 2025，UESTC）提出 SPU 级净化范式</p>
+<p><strong>实现路线</strong>：直接实现 ASAP，不复现作者未公开的完整 LiDAR-SPD 代码</p>
+<p><strong>3D 检测框架</strong>：<code>OpenPCDet_uni</code></p>
+<p><strong>扩散参考</strong>：DiffPure（NVlabs），PointDP（Sun 2023）</p>
+</div>
+</div>
+<div class="callout">
+<span class="label">命名约定</span>
+<p>正文称 <strong>ASAP</strong>（Adaptive Spherical Anomaly-Guided Purification）。LiDAR-SPD 仅作为<strong>已有 SPU 级净化范式</strong>与 reported baseline 引用，不作为本文必须复现的代码基线。</p>
+</div>
+</section>
+
+<section id="abbr">
+<h2>1. 缩写速查表</h2>
+<table>
+<thead><tr><th>缩写</th><th>英文全称</th><th>中文含义</th></tr></thead>
+<tbody>
+<tr><td><code>LiDAR</code></td><td>Light Detection And Ranging</td><td>激光雷达</td></tr>
+<tr><td><code>SPD</code></td><td>Spherical Projection and Diffusion</td><td>球形投影与扩散（原方法名）</td></tr>
+<tr><td><code>ASAP</code></td><td>Adaptive Spherical Anomaly-Guided Purification</td><td>自适应球形异常引导净化（本方法）</td></tr>
+<tr><td><code>SPU</code></td><td>Spherical Purification Unit</td><td>球形净化单元（核心数据结构）</td></tr>
+<tr><td><code>ASR</code></td><td>Attack Success Rate</td><td>攻击成功率（越低越说明防御越好）</td></tr>
+<tr><td><code>mAP</code></td><td>mean Average Precision</td><td>平均精度均值（3D 检测核心指标）</td></tr>
+<tr><td><code>VP-SDE</code></td><td>Variance Preserving Stochastic Differential Equation</td><td>方差保持型随机微分方程（扩散建模方式）</td></tr>
+<tr><td><code>DDPM</code></td><td>Denoising Diffusion Probabilistic Model</td><td>去噪扩散概率模型</td></tr>
+<tr><td><code>vMF</code></td><td>von Mises-Fisher distribution</td><td>球面上的"高斯分布"，参数：方向 + 集中度</td></tr>
+<tr><td><code>KNN</code></td><td>K-Nearest Neighbors</td><td>K 近邻</td></tr>
+<tr><td><code>KDE</code></td><td>Kernel Density Estimation</td><td>核密度估计</td></tr>
+<tr><td><code>PCA</code></td><td>Principal Component Analysis</td><td>主成分分析（估计点云局部各向异性）</td></tr>
+<tr><td><code>BPDA</code></td><td>Backward Pass Differentiable Approximation</td><td>反向可微近似（穿透防御的自适应攻击）</td></tr>
+<tr><td><code>EOT</code></td><td>Expectation Over Transformations</td><td>对变换求期望（针对随机化防御的攻击）</td></tr>
+<tr><td><code>PGD</code></td><td>Projected Gradient Descent</td><td>投影梯度下降（白盒攻击）</td></tr>
+<tr><td><code>FoV</code></td><td>Field of View</td><td>视场</td></tr>
+<tr><td><code>BEV</code></td><td>Bird's Eye View</td><td>鸟瞰视图</td></tr>
+<tr><td><code>ROC</code></td><td>Receiver Operating Characteristic</td><td>受试者工作特征曲线</td></tr>
+<tr><td><code>AUC</code></td><td>Area Under Curve</td><td>ROC 曲线下面积，衡量分类器性能</td></tr>
+<tr><td><code>TPR/FPR</code></td><td>True/False Positive Rate</td><td>真/假阳性率</td></tr>
+</tbody>
+</table>
+</section>
+
+<section id="paper">
+<h2>2. LiDAR 点云对抗攻击与 SPU-级净化（受 LiDAR-SPD 启发）</h2>
+
+<h3>2.1 对抗攻击问题设定</h3>
+<p>给定被对抗攻击污染的 LiDAR 点云场景 <em>Ŝ = S + T + P̂</em>，其中 <em>T</em> 表示攻击者对真实点的<strong>点扰动（point perturbation）</strong>，<em>P̂</em> 表示攻击者额外加入的<strong>点注入（point injection）</strong>。目标是构建一个<strong>不依赖具体检测器</strong>的前处理净化模块 <em>g</em>，使得 <em>g(Ŝ) ≈ S</em>，从而让 3D detector 在攻击场景下仍保持 <em>D(g(Ŝ)) ≈ D(S)</em>。</p>
+
+<h3>2.2 SPU 范式如何应对点云攻击</h3>
+<p>LiDAR-SPD 的关键贡献是把大规模 LiDAR scene 划分为局部 <strong>Spherical Purification Unit (SPU)</strong>，再在 SPU 级别用球形投影处理注入攻击、用扩散净化处理扰动攻击。ASAP 采用这种<strong>球形局部单元</strong>思想，但不依赖原作者代码，而是在其范式上重新设计自适应半径、异常打分与选择性扩散，使防御更适合真实 LiDAR 点云对抗场景。</p>
+<svg class="diagram" viewBox="0 0 900 260" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+<path d="M0,0 L0,6 L9,3 z" fill="#94a3b8"/>
+</marker>
+</defs>
+<rect x="20" y="100" width="130" height="60" rx="6" fill="#3a1414" stroke="#ef4444" stroke-width="1.5"/>
+<text x="85" y="125" text-anchor="middle" fill="#fca5a5" font-size="13" font-weight="600">Adversarial</text>
+<text x="85" y="145" text-anchor="middle" fill="#fca5a5" font-size="13">LiDAR Scene Ŝ</text>
+<rect x="190" y="40" width="160" height="180" rx="6" fill="#16243d" stroke="#2563eb" stroke-width="1.5"/>
+<text x="270" y="62" text-anchor="middle" fill="#93c5fd" font-size="12" font-weight="600">STEP 1</text>
+<text x="270" y="85" text-anchor="middle" fill="#e2e8f0" font-size="13" font-weight="600">Build SPUs</text>
+<text x="270" y="110" text-anchor="middle" fill="#94a3b8" font-size="11">随机采球心</text>
+<text x="270" y="128" text-anchor="middle" fill="#94a3b8" font-size="11">半径 r1 = 0.15m</text>
+<text x="270" y="146" text-anchor="middle" fill="#94a3b8" font-size="11">覆盖全部点</text>
+<text x="270" y="180" text-anchor="middle" fill="#fcd34d" font-size="11">输出: {SPU_i}</text>
+<rect x="390" y="40" width="160" height="180" rx="6" fill="#0b3a2c" stroke="#10b981" stroke-width="1.5"/>
+<text x="470" y="62" text-anchor="middle" fill="#6ee7b7" font-size="12" font-weight="600">STEP 2</text>
+<text x="470" y="85" text-anchor="middle" fill="#e2e8f0" font-size="13" font-weight="600">Spherical Projection</text>
+<text x="470" y="110" text-anchor="middle" fill="#94a3b8" font-size="11">射线从原点射向球心</text>
+<text x="470" y="128" text-anchor="middle" fill="#94a3b8" font-size="11">穿过近球, 判定遮挡</text>
+<text x="470" y="146" text-anchor="middle" fill="#94a3b8" font-size="11">遮挡 SPU 投影到近 SPU</text>
+<text x="470" y="180" text-anchor="middle" fill="#fcd34d" font-size="11">目标: 去注入攻击</text>
+<rect x="590" y="40" width="160" height="180" rx="6" fill="#241433" stroke="#8b5cf6" stroke-width="1.5"/>
+<text x="670" y="62" text-anchor="middle" fill="#d8b4fe" font-size="12" font-weight="600">STEP 3</text>
+<text x="670" y="85" text-anchor="middle" fill="#e2e8f0" font-size="13" font-weight="600">Spherical Diffusion</text>
+<text x="670" y="110" text-anchor="middle" fill="#94a3b8" font-size="11">每 SPU 独立扩散</text>
+<text x="670" y="128" text-anchor="middle" fill="#94a3b8" font-size="11">VP-SDE + 局部特征 z</text>
+<text x="670" y="146" text-anchor="middle" fill="#94a3b8" font-size="11">t* = 0.1</text>
+<text x="670" y="180" text-anchor="middle" fill="#fcd34d" font-size="11">目标: 去扰动攻击</text>
+<rect x="790" y="100" width="100" height="60" rx="6" fill="#0b3a2c" stroke="#10b981" stroke-width="1.5"/>
+<text x="840" y="125" text-anchor="middle" fill="#6ee7b7" font-size="13" font-weight="600">Clean</text>
+<text x="840" y="145" text-anchor="middle" fill="#6ee7b7" font-size="13">S′</text>
+<line x1="150" y1="130" x2="188" y2="130" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+<line x1="350" y1="130" x2="388" y2="130" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+<line x1="550" y1="130" x2="588" y2="130" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+<line x1="750" y1="130" x2="788" y2="130" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+</svg>
+
+<h3>2.3 LiDAR-SPD 在点云对抗攻击下的 reported 结果（KITTI）</h3>
+<table>
+<thead>
+<tr><th rowspan="2">Detector</th><th colspan="4" class="center">ASR (%) 经 LiDAR-SPD 净化后</th></tr>
+<tr><th class="center">Wang21 (扰动)</th><th class="center">Sun20 (注入)</th><th class="center">Tu20 (注入)</th><th class="center">Wang24 (注入)</th></tr>
+</thead>
+<tbody>
+<tr><td>PointPillars</td><td class="num center">25.1</td><td class="num center">20.5</td><td class="num center">40.7</td><td class="num center">46.6</td></tr>
+<tr><td>PV-RCNN</td><td class="num center">19.4</td><td class="num center">14.5</td><td class="num center">35.2</td><td class="num center">47.2</td></tr>
+<tr><td>CenterPoint</td><td class="num center">21.2</td><td class="num center">18.3</td><td class="num center">33.7</td><td class="num center">43.0</td></tr>
+</tbody>
+</table>
+<p><em>无防御时 ASR 普遍在 70~95%；LiDAR-SPD 报告值显示 SPU 级净化有潜力将 ASR 降到 14~47%。本文将这些数值作为 reported baseline，而不是复现目标。</em></p>
+
+<div class="callout warn">
+<span class="label">叙事边界</span>
+<p>本文不是 LiDAR-SPD 的工程复现报告，而是提出一个新的 <strong>ASAP SPU-level adversarial purification framework</strong>。LiDAR-SPD 负责证明 SPU 级净化可用于 LiDAR 点云对抗防御；ASAP 负责解决该类防御在速度、密度适配和干净精度上的系统性问题。</p>
+</div>
+</section>
+
+<section id="weak">
+<h2>3. LiDAR 点云对抗防御中的现有局限性</h2>
+<div class="grid-3">
+<div class="card red">
+<h4><span class="tag r">S1</span> 推理慢</h4>
+<p>KITTI 一帧约 12 万点，固定半径会切出 <strong>几百到上千个 SPU</strong>。如果为了抵御点扰动和点注入攻击而让每个 SPU 都走 VP-SDE 反向积分，推理成本会迅速放大。</p>
+<div class="callout bad" style="margin:8px 0"><span class="label">证据</span><p>已有 diffusion purification 工作通常计算开销高；LiDAR-SPD 报告值中未给出 fps 或 latency。</p></div>
+</div>
+<div class="card red">
+<h4><span class="tag r">S2</span> 半径全局固定</h4>
+<p>固定 <em>r1, r2</em> 难以适配真实 LiDAR 的非均匀采样。点密度随距离 <em>d</em> 近似按 <em>1/d²</em> 衰减——5m 处一个 SPU 可能含 200~500 点，50m 处可能只剩 3~10 点。</p>
+<div class="callout warn" style="margin:8px 0"><span class="label">代价</span><p>远处 SPU 点太少时扩散模型无法稳定生成，可能放大噪声。</p></div>
+</div>
+<div class="card red">
+<h4><span class="tag r">S3</span> 无差别净化</h4>
+<p>如果所有 SPU 一视同仁地强制扩散，那么 clean scene 上也会被改动。这会降低干净精度，并且把计算预算浪费在明显正常的局部区域。</p>
+<div class="callout bad" style="margin:8px 0"><span class="label">证据</span><p>LiDAR-SPD 报告的主表只关注 ASR，没有系统报告净化后 clean mAP；这正是 ASAP 要补上的指标。</p></div>
+</div>
+</div>
+
+<div class="callout purple" style="margin-top:18px">
+<span class="label">本工作的中心思想</span>
+<p><strong>S1 + S2 + S3 是耦合的</strong>。如果我们能识别"哪些 SPU 可能被对抗攻击污染"并且"按密度适配半径"，那么：</p>
+<ol>
+<li>仅对可疑 SPU 扩散 → <strong>速度暴增</strong>（解决 S1）</li>
+<li>不动干净 SPU → <strong>clean mAP 不掉</strong>（解决 S3）</li>
+<li>密度自适应半径 → <strong>稀疏区不再失效</strong>（解决 S2）</li>
+</ol>
+<p>三个改进同源、互相增益，构成"面向点云对抗攻击的高效鲁棒净化"完整故事。</p>
+</div>
+</section>
+
+<section id="overview">
+<h2>4. ASAP 对抗攻击防御框架总览</h2>
+
+<svg class="diagram" viewBox="0 0 920 380" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<marker id="arrow2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+<path d="M0,0 L0,6 L9,3 z" fill="#94a3b8"/>
+</marker>
+</defs>
+<rect x="20" y="160" width="120" height="60" rx="6" fill="#3a1414" stroke="#ef4444" stroke-width="1.5"/>
+<text x="80" y="185" text-anchor="middle" fill="#fca5a5" font-size="12" font-weight="600">Adversarial</text>
+<text x="80" y="203" text-anchor="middle" fill="#fca5a5" font-size="12">Point Cloud Ŝ</text>
+
+<rect x="170" y="40" width="170" height="140" rx="6" fill="#16243d" stroke="#2563eb" stroke-width="1.5"/>
+<text x="255" y="62" text-anchor="middle" fill="#93c5fd" font-size="11" font-weight="600">Module 1 (NEW)</text>
+<text x="255" y="84" text-anchor="middle" fill="#e2e8f0" font-size="13" font-weight="600">Adaptive Radius</text>
+<text x="255" y="104" text-anchor="middle" fill="#94a3b8" font-size="11">KNN 估计局部密度</text>
+<text x="255" y="122" text-anchor="middle" fill="#94a3b8" font-size="11">r1 = α · d_k(p)</text>
+<text x="255" y="140" text-anchor="middle" fill="#94a3b8" font-size="11">r2 = β · r1</text>
+<text x="255" y="164" text-anchor="middle" fill="#fcd34d" font-size="10">解决 S2</text>
+
+<rect x="170" y="200" width="170" height="140" rx="6" fill="#0b3a2c" stroke="#10b981" stroke-width="1.5"/>
+<text x="255" y="222" text-anchor="middle" fill="#6ee7b7" font-size="11" font-weight="600">Physics Prior</text>
+<text x="255" y="244" text-anchor="middle" fill="#e2e8f0" font-size="13" font-weight="600">Spherical Projection</text>
+<text x="255" y="264" text-anchor="middle" fill="#94a3b8" font-size="11">物理一致性逻辑</text>
+<text x="255" y="282" text-anchor="middle" fill="#94a3b8" font-size="11">用自适应 r1, r2 构 SPU</text>
+<text x="255" y="300" text-anchor="middle" fill="#94a3b8" font-size="11">投影去注入攻击</text>
+<text x="255" y="324" text-anchor="middle" fill="#fcd34d" font-size="10">保留物理先验</text>
+
+<rect x="380" y="120" width="170" height="140" rx="6" fill="#241433" stroke="#8b5cf6" stroke-width="1.5"/>
+<text x="465" y="142" text-anchor="middle" fill="#d8b4fe" font-size="11" font-weight="600">Module 2 (NEW)</text>
+<text x="465" y="164" text-anchor="middle" fill="#e2e8f0" font-size="13" font-weight="600">Anomaly Scorer</text>
+<text x="465" y="184" text-anchor="middle" fill="#94a3b8" font-size="11">f1: compactness</text>
+<text x="465" y="202" text-anchor="middle" fill="#94a3b8" font-size="11">f2: anisotropy (PCA)</text>
+<text x="465" y="220" text-anchor="middle" fill="#94a3b8" font-size="11">f3: vMF kappa</text>
+<text x="465" y="240" text-anchor="middle" fill="#fcd34d" font-size="10">解决 S3 (选择)</text>
+
+<polygon points="600,190 660,160 720,190 660,220" fill="#3b2a08" stroke="#f59e0b" stroke-width="1.5"/>
+<text x="660" y="188" text-anchor="middle" fill="#fcd34d" font-size="12" font-weight="600">score &gt; τ?</text>
+<text x="660" y="205" text-anchor="middle" fill="#fcd34d" font-size="10">(gate)</text>
+
+<rect x="760" y="80" width="140" height="100" rx="6" fill="#241433" stroke="#8b5cf6" stroke-width="1.5"/>
+<text x="830" y="100" text-anchor="middle" fill="#d8b4fe" font-size="11" font-weight="600">Module 3 (NEW)</text>
+<text x="830" y="120" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="600">Selective Diffusion</text>
+<text x="830" y="138" text-anchor="middle" fill="#94a3b8" font-size="10">VP-SDE + z</text>
+<text x="830" y="156" text-anchor="middle" fill="#94a3b8" font-size="10">仅对可疑 SPU</text>
+<text x="830" y="172" text-anchor="middle" fill="#fcd34d" font-size="10">解决 S1 + S3</text>
+
+<rect x="760" y="200" width="140" height="60" rx="6" fill="#0b3a2c" stroke="#10b981" stroke-width="1.5"/>
+<text x="830" y="222" text-anchor="middle" fill="#6ee7b7" font-size="12" font-weight="600">Bypass</text>
+<text x="830" y="242" text-anchor="middle" fill="#94a3b8" font-size="10">直接保留原点</text>
+
+<rect x="385" y="290" width="155" height="60" rx="6" fill="#0b3a2c" stroke="#10b981" stroke-width="1.5"/>
+<text x="462" y="315" text-anchor="middle" fill="#6ee7b7" font-size="13" font-weight="600">Purified Scene</text>
+<text x="462" y="335" text-anchor="middle" fill="#6ee7b7" font-size="13">S′ → Detector D</text>
+
+<line x1="140" y1="190" x2="168" y2="160" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow2)"/>
+<line x1="140" y1="190" x2="168" y2="240" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow2)"/>
+<line x1="340" y1="110" x2="378" y2="160" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow2)"/>
+<line x1="340" y1="270" x2="378" y2="220" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow2)"/>
+<line x1="550" y1="190" x2="598" y2="190" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow2)"/>
+<line x1="720" y1="180" x2="758" y2="130" stroke="#10b981" stroke-width="2" marker-end="url(#arrow2)"/>
+<text x="725" y="148" fill="#10b981" font-size="11">yes</text>
+<line x1="720" y1="200" x2="758" y2="230" stroke="#6ee7b7" stroke-width="2" marker-end="url(#arrow2)"/>
+<text x="725" y="226" fill="#6ee7b7" font-size="11">no</text>
+<line x1="830" y1="180" x2="540" y2="305" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow2)"/>
+<line x1="830" y1="260" x2="540" y2="320" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow2)"/>
+</svg>
+
+<div class="callout">
+<span class="label">三个 NEW 模块对应三个局限</span>
+<p><span class="tag b">M1</span> Adaptive Radius → 解决 <span class="tag r">S2</span></p>
+<p><span class="tag p">M2</span> Anomaly Scorer → 决定哪些 SPU 进 M3</p>
+<p><span class="tag p">M3</span> Selective Diffusion → 解决 <span class="tag r">S1</span> 和 <span class="tag r">S3</span></p>
+<p><strong>Spherical Projection 保留物理遮挡建模思想</strong>——它是 SPU 级净化应对注入攻击的关键几何先验；ASAP 在此基础上加入自适应半径与选择性扩散。</p>
+</div>
+</section>
+
+<section id="m1">
+<h2>5. 模块一：自适应半径估计</h2>
+
+<h3>5.1 设计动机</h3>
+<p>LiDAR 点云的局部密度 <em>ρ(p)</em> 强烈依赖于距离 <em>d = ‖p‖₂</em> 和入射角 <em>θ</em>。最简单的物理近似：</p>
+<div class="formula"><span class="var">ρ</span>(<span class="var">p</span>) <span class="op">∝</span> <span class="var">cos</span>(<span class="var">θ</span>) <span class="op">/</span> <span class="var">d</span>²</div>
+<p>固定 r1 会让远处 SPU 退化（点太少 → 扩散崩坏），近处 SPU 浪费算力（点太多）。</p>
+
+<h3>5.2 计算方法</h3>
+<div class="grid-2">
+<div class="card blue">
+<h4>候选 A：KNN-based（推荐）</h4>
+<p>对每个候选球心 <em>p</em>，找第 <em>k</em> 近邻距离 <em>d_k(p)</em>（k=16）。</p>
+<div class="formula"><span class="var">r1</span>(<span class="var">p</span>) <span class="op">=</span> <span class="var">α</span> <span class="op">·</span> <span class="var">d_k</span>(<span class="var">p</span>), <span class="var">α</span> ≈ <span class="num">2.0</span></div>
+<p><strong>优点</strong>：scipy KDTree 直接给，O(N log N)。</p>
+<p><strong>缺点</strong>：远处不足 k 个点时需 fallback。</p>
+</div>
+<div class="card blue">
+<h4>候选 B：Range-based（备用）</h4>
+<p>用 LiDAR 物理参数（垂直角分辨率 Δφ、水平 Δθ）：</p>
+<div class="formula"><span class="var">r1</span>(<span class="var">p</span>) <span class="op">=</span> <span class="var">α</span> <span class="op">·</span> <span class="var">d</span> <span class="op">·</span> <span class="var">max</span>(<span class="var">Δφ</span>, <span class="var">Δθ</span>)</div>
+<p><strong>优点</strong>：纯几何，O(N)。</p>
+<p><strong>缺点</strong>：依赖 sensor specs（KITTI Δφ≈0.4°, Δθ≈0.08°）。</p>
+</div>
+</div>
+<div class="callout ok"><span class="label">推荐</span>
+<p><strong>主用 A</strong>：实现简单、不依赖 sensor 参数、跨数据集通用。<strong>B 作 ablation 对比</strong>。</p></div>
+
+<h3>5.3 边界处理</h3>
+<ul>
+<li>设上下界：<code>r1 ∈ [0.10m, 0.40m]</code></li>
+<li>r2 联动：<code>r2 = 0.67 · r1</code>（参考 0.10/0.15 的经验比例）</li>
+</ul>
+</section>
+
+<section id="m2">
+<h2>6. 模块二：异常打分器</h2>
+
+<h3>6.1 设计哲学</h3>
+<p>不训练深度异常检测器（增加训练负担、需伪标签）。改用<strong>无需训练的几何统计量</strong>组合 score——快、可解释、不引入额外参数。</p>
+
+<h3>6.2 三个候选特征</h3>
+<div class="grid-3">
+<div class="card purple">
+<h4><span class="tag p">f1</span> Compactness 紧致度</h4>
+<p>干净物体的局部点云贴合 2D 流形（车身、地面）。注入点散乱在 3D 体素里。</p>
+<div class="formula"><span class="var">f1</span> <span class="op">=</span> <span class="var">σ</span>(<span class="var">d_to_centroid</span>)</div>
+<p>σ 大 → 异常。</p>
+</div>
+<div class="card purple">
+<h4><span class="tag p">f2</span> Anisotropy 各向异性</h4>
+<p>对 SPU 内点做 PCA 得特征值 <em>λ₁≥λ₂≥λ₃</em>：</p>
+<div class="formula"><span class="var">f2</span> <span class="op">=</span> <span class="var">λ₃</span> <span class="op">/</span> (<span class="var">λ₁</span><span class="op">+</span><span class="var">λ₂</span><span class="op">+</span><span class="var">λ₃</span>)</div>
+<p>合法表面 f2≈0，注入团块 f2→1/3。</p>
+</div>
+<div class="card purple">
+<h4><span class="tag p">f3</span> vMF Kappa 方向集中度</h4>
+<p>SPU 内点归一化到单位球，估计 vMF 集中参数 <em>κ̂</em>：</p>
+<div class="formula"><span class="var">f3</span> <span class="op">=</span> <span class="op">-log</span>(<span class="var">κ̂</span>)</div>
+<p>κ̂ 大 → 朝向集中（自然表面）；小 → 散乱 → 异常。</p>
+</div>
+</div>
+
+<h3>6.3 综合 score 与阈值</h3>
+<p>三个特征 z-score 标准化后线性加权：</p>
+<div class="formula"><span class="var">score</span> <span class="op">=</span> <span class="var">w₁</span><span class="op">·</span><span class="var">z</span>(<span class="var">f1</span>) <span class="op">+</span> <span class="var">w₂</span><span class="op">·</span><span class="var">z</span>(<span class="var">f2</span>) <span class="op">+</span> <span class="var">w₃</span><span class="op">·</span><span class="var">z</span>(<span class="var">f3</span>)</div>
+
+<p>权重 <em>w</em> 通过 KITTI 训练集做<strong>二分类逻辑回归</strong>学到：</p>
+<ol>
+<li>clean 训练图 → SPU 标 label=0</li>
+<li>attacked 训练图 → SPU 与攻击点 IoU&gt;0.5 标 label=1</li>
+<li>[f1,f2,f3] 做 logistic regression，得 w₁,w₂,w₃</li>
+</ol>
+
+<p>阈值 <em>τ</em> 通过 ROC 曲线上 Youden 指数（J = TPR − FPR 最大）确定。</p>
+
+<div class="callout warn"><span class="label">写作技巧</span>
+<p>逻辑回归只 3 参数，避免审稿人指责"加了可训练检测器"。论文可写成"<em>weights determined by simple grid search</em>"——更轻。</p></div>
+</section>
+
+<section id="m3">
+<h2>7. 模块三：选择性扩散</h2>
+
+<h3>7.1 核心改动</h3>
+<p>对每个 SPU：</p>
+<ul>
+<li><strong>若 score &gt; τ</strong>：进入 VP-SDE / PointDP-style 扩散（forward → backward with local feature z）</li>
+<li><strong>若 score ≤ τ</strong>：保持原始点云不动（bypass）</li>
+</ul>
+
+<h3>7.2 进一步加速：批处理</h3>
+<p>uniform SPU diffusion 会对每个 SPU 单独调用 sdeint。ASAP 把所有可疑 SPU 在点维度 pad 到相同 N_max，<strong>批处理</strong>送入扩散网络：</p>
+<div class="formula">
+<span class="var">X_batch</span> <span class="op">=</span> <span class="var">pad</span>([<span class="var">SPU₁</span>, ..., <span class="var">SPU_k</span>])  <span class="op">→</span> shape (<span class="var">k</span>, <span class="var">N_max</span>, 3)
+<br><span class="var">X_purified</span> <span class="op">=</span> <span class="op">sdeint_batch</span>(<span class="var">X_batch</span>, <span class="var">z_batch</span>)
+</div>
+<p>预期在 RTX 4090 上单帧推理从 <strong>~30s</strong> 降到 <strong>~1-3s</strong>（依实测）。</p>
+
+<h3>7.3 局部特征 z 的复用</h3>
+<p>使用 PointNet++ 风格的局部编码器为 SPU 提取 z。ASAP 只在可疑 SPU 上计算 z，从而同时减少 encoder forward 与 reverse-SDE 的开销。</p>
+</section>
+
+<section id="loss">
+<h2>8. 训练目标</h2>
+<p>ASAP 使用 <strong>PointDP / DiffPure 风格的扩散净化损失</strong>，不额外堆复杂监督项。本文的创新点集中在 SPU 构造、异常门控与批处理推理，而不是重新发明 diffusion loss。</p>
+<div class="grid-2">
+<div class="card green">
+<h4>扩散净化基础损失</h4>
+<p><strong>(1) Score matching loss</strong>（扩散主损失）</p>
+<div class="formula"><span class="var">L_sm</span> <span class="op">=</span> <span class="var">E</span>[‖<span class="var">ε_θ</span>(<span class="var">x_t</span>, <span class="var">t</span>, <span class="var">z</span>) − <span class="var">ε</span>‖²]</div>
+<p><strong>(2) Local purification loss</strong></p>
+<div class="formula"><span class="var">L_local</span> <span class="op">=</span> <span class="var">Hausdorff</span>(<span class="var">p</span>, <span class="var">p'</span>) <span class="op">+</span> ‖<span class="var">z</span>−<span class="var">z'</span>‖² <span class="op">/</span> <span class="var">exp</span>(<span class="var">z</span>·<span class="var">z'</span>)</div>
+</div>
+<div class="card blue">
+<h4>新加（可选）</h4>
+<p><strong>Anomaly score 监督</strong>：</p>
+<div class="formula"><span class="var">L_score</span> <span class="op">=</span> <span class="var">BCE</span>(<span class="var">σ</span>(<span class="var">w</span>·<span class="var">f</span>), <span class="var">y_attack</span>)</div>
+<p><em>注</em>：独立训练 3-参数模型，不与扩散联合训练。</p>
+</div>
+</div>
+</section>
+
+<section id="exp">
+<h2>9. 点云对抗攻击实验设计</h2>
+
+<h3>9.1 数据集</h3>
+<table>
+<thead><tr><th>数据集</th><th>用途</th><th>规模</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><strong>KITTI</strong></td><td>主实验</td><td>3712 train / 3769 val</td><td>对齐 reported baselines 的 split 与 detector 配置</td></tr>
+<tr><td>nuScenes</td><td>泛化（可选）</td><td>28k / 6k</td><td>32 线 LiDAR，验证自适应半径跨 sensor</td></tr>
+</tbody>
+</table>
+
+<h3>9.2 检测器</h3>
+<ul>
+<li><strong>PointPillars</strong>（CVPR 2019）— pillar-based</li>
+<li><strong>PV-RCNN</strong>（CVPR 2020）— voxel + point hybrid</li>
+<li><strong>CenterPoint</strong>（CVPR 2021）— anchor-free</li>
+</ul>
+
+<h3>9.3 点云对抗攻击设置</h3>
+<table>
+<thead><tr><th>攻击类型</th><th>方法</th><th>攻击目标</th><th>引用</th></tr></thead>
+<tbody>
+<tr><td>Point perturbation</td><td>Wang et al. (扰动现有点)</td><td>破坏已有目标检测框</td><td>Neurocomputing 2021</td></tr>
+<tr><td>Point injection - black-box</td><td>Sun et al. (遮挡区注入)</td><td>制造 phantom / spoofed object</td><td>USENIX 2020</td></tr>
+<tr><td>Point injection - physical</td><td>Tu et al. (车顶 3D 打印物)</td><td>物理可实现的目标隐藏/误检</td><td>CVPR 2020</td></tr>
+<tr><td>Point injection - obstacle</td><td>Wang et al. (虚假障碍物)</td><td>生成虚假障碍物</td><td>IEEE TMM 2024</td></tr>
+</tbody>
+</table>
+
+<h3>9.4 对比方法（含 2024–2025 最新）</h3>
+
+<div class="callout warn">
+<span class="label">为什么必须更新 baselines</span>
+<p>原 LiDAR-SPD（ICASSP 2025）只对比了 <strong>3D-VField (CVPR 2022)</strong>、<strong>Hahner (CVPR 2022)</strong>、<strong>PointDP (ICML 2023)</strong>——到 ICASSP 2026 投稿时（2026 年 9 月）已经是 3-4 年前的工作。审稿人会问 "<em>没看过 Ada3Diff？没看过 LiDARPure？没看过 2024 年的 Test-Time PST？</em>"</p>
+</div>
+
+<h4>必加的 6 个新 baselines</h4>
+<table>
+<thead>
+<tr><th>方法</th><th>会议/期刊</th><th>核心机制</th><th>必须对比的原因</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Ada3Diff</strong></td><td class="center">ACM MM 2023</td><td>plane-fitting distortion estimator + 自适应扩散<strong>时间步</strong></td><td><span class="tag r">最关键</span> 直接对标 "adaptive diffusion"，与 ASAP 思路重合</td></tr>
+<tr><td><strong>LiDARPure</strong></td><td class="center">Sensors 2024</td><td>同作者 LiDAR-SPD 前作，扩散净化 common corruption</td><td><span class="tag r">必加</span> 同实验室前作，不对比说不过去</td></tr>
+<tr><td><strong>ScAR</strong></td><td class="center">arXiv 2023, IROS</td><td>scaling-aware 黑盒鲁棒性 for LiDAR detection</td><td><span class="tag w">应加</span> 唯一专门为 LiDAR detection 设计的方法</td></tr>
+<tr><td><strong>Test-Time PST</strong></td><td class="center">arXiv 2024-09</td><td>purified self-training，自适应阈值</td><td><span class="tag w">应加</span> 2024 最新工作，"adaptive thresholding" 与 ASAP 阈值思想类似</td></tr>
+<tr><td><strong>CloudFixer</strong></td><td class="center">ECCV 2024</td><td>几何变换优化 + 扩散</td><td><span class="tag w">可加</span> 2024 ECCV 工作，几何先验视角</td></tr>
+<tr><td><strong>DiffuBox</strong></td><td class="center">NeurIPS 2024</td><td>diffusion 优化 3D detection bbox</td><td><span class="tag b">备选</span> 不是防御，但是 diffusion + 3D detection 的强相关，至少进 related work</td></tr>
+</tbody>
+</table>
+
+<div class="callout purple">
+<span class="label">ASAP 的护城河（Ada3Diff 不能覆盖的点）</span>
+<table style="margin-top:8px">
+<thead>
+<tr><th>维度</th><th>Ada3Diff (MM 2023)</th><th>ASAP (ours)</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>任务</strong></td><td>点云<strong>分类</strong> (ModelNet40)</td><td>LiDAR <strong>检测</strong> (KITTI 自动驾驶)</td></tr>
+<tr><td><strong>Adaptive 对象</strong></td><td>扩散<strong>时间步</strong> t</td><td><strong>半径 r1</strong> + <strong>是否扩散</strong>（gate）</td></tr>
+<tr><td><strong>异常度量</strong></td><td>点到局部平面距离</td><td>密度 + 紧致 + 各向异性 + vMF (4 维)</td></tr>
+<tr><td><strong>数据模态</strong></td><td>干净、紧致、千点级别</td><td>稀疏、带遮挡、十万点级别</td></tr>
+<tr><td><strong>物理一致性</strong></td><td>无</td><td>球形投影（LiDAR 视角遮挡）</td></tr>
+<tr><td><strong>计算粒度</strong></td><td>点级</td><td>SPU 级（语义子单元）</td></tr>
+</tbody>
+</table>
+<p style="margin-top:10px"><strong>论文里的差异化句式</strong>："<em>While Ada3Diff [X] adapts diffusion timesteps for clean object classification, ASAP operates at the spherical-unit level on raw LiDAR scenes, leveraging both density-aware radii and physics-grounded occlusion projection — both impossible at the point-level granularity.</em>"</p>
+</div>
+
+<h3>9.5 评测指标</h3>
+<div class="grid-2">
+<div class="card blue">
+<h4>必报</h4>
+<ul>
+<li><strong>ASR</strong>（%）越低越好，主指标</li>
+<li><strong>mAP / mAP_3D</strong>（%）越高越好</li>
+<li><strong>Latency</strong>（ms/frame）越低越好</li>
+</ul>
+</div>
+<div class="card green">
+<h4>选报（卖点）</h4>
+<ul>
+<li><strong>SPU diffused ratio</strong>（%）</li>
+<li><strong>Radius distribution</strong> 直方图</li>
+<li><strong>ROC-AUC</strong> of anomaly scorer</li>
+</ul>
+</div>
+</div>
+</section>
+
+<section id="tables">
+<h2>10. 对抗鲁棒性主表模板（直接套你的数字）</h2>
+
+<h3>10.1 Table I — LiDAR 点云对抗攻击下的 ASR 主对比（已扩充至 2024-2025 baselines）</h3>
+<table>
+<thead>
+<tr><th>Defense against attack</th><th class="center">年份</th><th class="center">Wang21<br><span class="muted">perturbation</span></th><th class="center">Sun20<br><span class="muted">injection</span></th><th class="center">Tu20<br><span class="muted">physical injection</span></th><th class="center">Wang24<br><span class="muted">obstacle injection</span></th><th class="center">Avg ASR ↓</th></tr>
+</thead>
+<tbody>
+<tr><td>No defense</td><td class="center">—</td><td class="num center">~85</td><td class="num center">~88</td><td class="num center">~82</td><td class="num center">~97</td><td class="num center">88.0</td></tr>
+<tr style="opacity:0.7"><td>3D-VField</td><td class="center">CVPR 22</td><td class="num center">77.6</td><td class="num center">75.8</td><td class="num center">70.3</td><td class="num center">95.4</td><td class="num center">79.8</td></tr>
+<tr style="opacity:0.7"><td>Hahner et al.</td><td class="center">CVPR 22</td><td class="num center">71.2</td><td class="num center">73.3</td><td class="num center">71.4</td><td class="num center">94.1</td><td class="num center">77.5</td></tr>
+<tr style="opacity:0.7"><td>PointDP</td><td class="center">ICML 23</td><td class="num center">54.9</td><td class="num center">70.8</td><td class="num center">62.2</td><td class="num center">93.0</td><td class="num center">70.2</td></tr>
+<tr style="background:#241433"><td>Ada3Diff <span class="tag p">NEW</span></td><td class="center">MM 23</td><td class="num center">?</td><td class="num center">?</td><td class="num center">?</td><td class="num center">?</td><td class="num center">?</td></tr>
+<tr style="background:#241433"><td>ScAR <span class="tag p">NEW</span></td><td class="center">IROS 23</td><td class="num center">?</td><td class="num center">?</td><td class="num center">?</td><td class="num center">?</td><td class="num center">?</td></tr>
+<tr style="background:#241433"><td>LiDARPure <span class="tag p">NEW</span></td><td class="center">Sensors 24</td><td class="num center">?</td><td class="num center">?</td><td class="num center">?</td><td class="num center">?</td><td class="num center">?</td></tr>
+<tr style="background:#241433"><td>CloudFixer <span class="tag p">NEW</span></td><td class="center">ECCV 24</td><td class="num center">?</td><td class="num center">?</td><td class="num center">?</td><td class="num center">?</td><td class="num center">?</td></tr>
+<tr style="background:#241433"><td>Test-Time PST <span class="tag p">NEW</span></td><td class="center">arXiv 24</td><td class="num center">?</td><td class="num center">?</td><td class="num center">?</td><td class="num center">?</td><td class="num center">?</td></tr>
+<tr><td>LiDAR-SPD <span class="tag b">reported</span></td><td class="center">ICASSP 25</td><td class="num center">25.1</td><td class="num center">20.5</td><td class="num center">40.7</td><td class="num center">46.6</td><td class="num center">33.2</td></tr>
+<tr style="background:#0b3a2c"><td><strong>ASAP (ours)</strong></td><td class="center"><strong>26</strong></td><td class="num center"><strong>?</strong></td><td class="num center"><strong>?</strong></td><td class="num center"><strong>?</strong></td><td class="num center"><strong>?</strong></td><td class="num center"><strong>?</strong></td></tr>
+</tbody>
+</table>
+<p><em>目标</em>：ours 在 Avg ≤ 30.0（优于 LiDAR-SPD reported 33.2），且全面优于 Ada3Diff/CloudFixer 在 LiDAR detection 任务下的迁移版本。</p>
+
+<div class="callout warn">
+<span class="label">Baseline 使用策略</span>
+<ul>
+<li><strong>3D-VField/Hahner/PointDP/LiDAR-SPD</strong>：使用原论文公开 reported 数字，表中明确标记 reported。</li>
+<li><strong>Ada3Diff/CloudFixer/Test-Time PST</strong>：原本是 classification 方法，需要做"<em>LiDAR-detection adaptation</em>"——把它们的核心模块（Ada3Diff 的 plane-fit distortion estimator、CloudFixer 的几何变换优化）套到 KITTI scene 上跑。这种"forced adaptation" 在论文里很常见，审稿人能接受。</li>
+<li><strong>LiDARPure</strong>：同作者 Sensors 2024 工作，如有开源代码/权重则直接运行；如无，则只进 related work 或用 reported setting 做引用。</li>
+<li><strong>ScAR</strong>：优先查找 KITTI/nuScenes 代码；若无完整实现，作为 robustness training/scale perturbation 相关 baseline 讨论。</li>
+</ul>
+</div>
+
+<h3>10.2 Table II — Clean mAP 对比（ASAP 主卖点）</h3>
+<table>
+<thead>
+<tr><th>Defense</th><th class="center">PointPillars</th><th class="center">PV-RCNN</th><th class="center">CenterPoint</th></tr>
+</thead>
+<tbody>
+<tr><td>No defense (oracle)</td><td class="num center">75.3</td><td class="num center">82.8</td><td class="num center">76.9</td></tr>
+<tr><td>Uniform SPU diffusion (ours, no gating)</td><td class="num center">?</td><td class="num center">?</td><td class="num center">?</td></tr>
+<tr style="background:#0b3a2c"><td><strong>ASAP (ours)</strong></td><td class="num center">期望 ≈ 75</td><td class="num center">期望 ≈ 82</td><td class="num center">期望 ≈ 76</td></tr>
+</tbody>
+</table>
+<p><em>目标</em>：clean mAP 与无防御差距 ≤ 1pp，明显优于 uniform SPU diffusion，证明 selective gating 不只是加速，也保护干净精度。</p>
+
+<h3>10.3 Table III — 速度对比</h3>
+<table>
+<thead>
+<tr><th>Method</th><th class="center">SPU 总数</th><th class="center">扩散 SPU 数</th><th class="center">扩散比例 (%)</th><th class="center">Latency (s/frame)</th><th class="center">FPS</th></tr>
+</thead>
+<tbody>
+<tr><td>Uniform SPU diffusion (no gating)</td><td class="num center">~600</td><td class="num center">~600</td><td class="num center">100</td><td class="num center">待测</td><td class="num center">待测</td></tr>
+<tr style="background:#0b3a2c"><td><strong>ASAP (ours)</strong></td><td class="num center">~400</td><td class="num center">~50-100</td><td class="num center">~15</td><td class="num center">期望 1-3</td><td class="num center">期望 0.3-1</td></tr>
+</tbody>
+</table>
+<p><em>目标</em>：5–20× 加速。</p>
+</section>
+
+<section id="abl">
+<h2>11. Ablation 设计</h2>
+<table>
+<thead><tr><th>编号</th><th>Ablation</th><th>对比项</th><th>预期结论</th></tr></thead>
+<tbody>
+<tr><td>A1</td><td>移除自适应半径</td><td>固定 r1=0.15 vs 自适应</td><td>固定导致稀疏区 ASR ↑ 5-10pp</td></tr>
+<tr><td>A2</td><td>移除异常打分器</td><td>ASAP w/o gating：全 SPU 扩散 + uniform radius</td><td>clean mAP 比 ours 低，证明 selective 必要</td></tr>
+<tr><td>A3</td><td>异常打分器单/组特征</td><td>f1 / f2 / f3 / 三组合</td><td>组合 ROC-AUC 最高</td></tr>
+<tr><td>A4</td><td>阈值 τ 敏感性</td><td>τ ∈ [0.3, 0.5, 0.7, 0.9]</td><td>τ ∈ 0.5-0.7 范围内 ASR 平稳</td></tr>
+<tr><td>A5</td><td>不同攻击预算</td><td>budget = 10, 30, 50, 100 点</td><td>ASAP 优势随 budget ↑ 扩大</td></tr>
+<tr><td>A6</td><td>radius 上下界</td><td>[0.10,0.40] / [0.05,0.30] / [0.15,0.50]</td><td>对超参不敏感</td></tr>
+</tbody>
+</table>
+<div class="callout warn"><span class="label">取舍</span>
+<p>4 页 ICASSP 装不下全部。<strong>必报 A1+A2+A3</strong>（讲故事必要），<strong>选报 A4</strong>（鲁棒性证据），A5/A6 放 supplementary。</p></div>
+</section>
+
+<section id="timeline">
+<h2>12. 4 个月时间线（2026.05.19 – 2026.09.15）</h2>
+<table>
+<thead><tr><th>周</th><th>日期</th><th>任务</th><th>交付物</th></tr></thead>
+<tbody>
+<tr><td>W1</td><td>05.19–05.25</td><td>环境 + KITTI clean mAP + <strong>Sun20/Wang21 攻击 ASR</strong>（无防御）+ 克隆 Ada3Diff/PointDP/ScAR 代码</td><td>无防御基线 6 个数字 + baseline 代码清单</td></tr>
+<tr><td>W2</td><td>05.26–06.01</td><td>实现 <strong>ASAP 几何前端</strong>：adaptive SPU builder + spherical projection + 单测</td><td>SPU 构建器 + 投影器 unit test 通过</td></tr>
+<tr><td>W3</td><td>06.02–06.08</td><td>实现 <strong>Anomaly Scorer</strong>：compactness / anisotropy / vMF / density 四特征 + ROC 标定 τ</td><td>异常打分器 AUC + τ 值</td></tr>
+<tr><td>W4</td><td>06.09–06.15</td><td>接入 <strong>PointDP-style diffusion</strong> 与 selective gating，跑通 ASAP 单帧 pipeline</td><td><strong>milestone: ASAP 单帧可运行</strong></td></tr>
+<tr style="background:#16243d"><td>W5</td><td>06.16–06.22</td><td>批处理扩散 + OpenPCDet_uni dataloader/evaluator 接口</td><td>完整 val split 可运行</td></tr>
+<tr style="background:#16243d"><td>W6</td><td>06.23–06.29</td><td>ASAP Table I 第一版：PointPillars 上 4 个攻击 ASR</td><td>主指标第一批数字</td></tr>
+<tr style="background:#16243d"><td>W7</td><td>06.30–07.06</td><td>扩展到 PV-RCNN / CenterPoint + clean mAP</td><td>3 detectors 的 ASR + clean mAP</td></tr>
+<tr style="background:#16243d"><td>W8</td><td>07.07–07.13</td><td>调 τ / α / r bounds，稳定 Table I/II/III</td><td><strong>milestone: ours 主表稳定版</strong></td></tr>
+<tr style="background:#241433"><td>W9</td><td>07.14–07.20</td><td>跑 Table II（clean mAP）+ Table III（速度）</td><td>3 张主表完整</td></tr>
+<tr style="background:#241433"><td>W10</td><td>07.21–07.27</td><td>跑 A1, A2, A3 ablation</td><td>3 张 ablation 表</td></tr>
+<tr style="background:#241433"><td>W11</td><td>07.28–08.03</td><td>跑 A4 + 净化前后可视化</td><td>Fig 2, Fig 3</td></tr>
+<tr style="background:#241433"><td>W12</td><td>08.04–08.10</td><td><strong>跑新 baselines</strong>：Ada3Diff/CloudFixer/Test-Time PST 的 LiDAR 适配版 + LiDARPure（如可获取）</td><td>Table I 新 baselines 4-5 行 ASR 数字</td></tr>
+<tr style="background:#241433;opacity:0.85"><td>W12.5</td><td>—</td><td><em>(stretch)</em> nuScenes 泛化 + BPDA 自适应攻击</td><td>supplementary 数字</td></tr>
+<tr style="background:#0b3a2c"><td>W13</td><td>08.11–08.17</td><td>写 Section I + Section II</td><td>1 页 draft</td></tr>
+<tr style="background:#0b3a2c"><td>W14</td><td>08.18–08.24</td><td>写 Section III + Framework figure</td><td>2 页 draft</td></tr>
+<tr style="background:#0b3a2c"><td>W15</td><td>08.25–08.31</td><td>写 Section IV + Section V</td><td>4 页 draft</td></tr>
+<tr style="background:#0b3a2c"><td>W16</td><td>09.01–09.07</td><td>导师改稿 + 修图 + refs</td><td>final version</td></tr>
+<tr style="background:#3b2a08"><td>W17</td><td>09.08–09.14</td><td>提交 + buffer</td><td><strong>milestone: 投稿</strong></td></tr>
+</tbody>
+</table>
+<div class="callout ok"><span class="label">时间裕度（更新后）</span>
+<p>不再复现 LiDAR-SPD 后，W1-W4 直接进入 ASAP，实现压力下降。当前 buffer 回到 <strong>~2 周</strong>（W12.5 + W17 + 每周 1 天弹性）。</p>
+<p><strong>裕度风险点</strong>：</p>
+<ul>
+<li>W4 扩散 score net 训练若失败，直接用 PointDP 预训练权重 zero-shot，不把训练作为硬依赖</li>
+<li>W12 跑 5 个 baseline 太紧，可能要砍到 3 个（Ada3Diff + LiDARPure + Test-Time PST 必报，CloudFixer/ScAR 可省略）</li>
+<li>W12.5 是 stretch goal，KITTI 主战场完成后才考虑 nuScenes</li>
+</ul></div>
+</section>
+
+<section id="risk">
+<h2>13. 风险与备选方案</h2>
+<div class="grid-2">
+
+<div class="card red">
+<h4>风险 1：clean mAP 没回升</h4>
+<p><strong>表现</strong>：ASAP 的 clean mAP 与 no defense 差距 &gt; 1pp，或相对 uniform SPU diffusion 没有明显优势。</p>
+<p><strong>原因</strong>：异常打分器假阳性率太高，扩散仍过度。</p>
+<p><strong>备选</strong>：</p>
+<ol>
+<li>提高阈值 τ → 减少扩散，clean mAP ↑ 但 ASR ↑ → 调权衡。</li>
+<li>把卖点改为 "<strong>5-20× 加速</strong>"，一样能投。</li>
+</ol>
+</div>
+
+<div class="card red">
+<h4>风险 2：异常打分器被指 trivial</h4>
+<p><strong>备选</strong>：</p>
+<ol>
+<li>f1/f2/f3 升级为 vMF kappa + DGCNN feature 方差。</li>
+<li>ablation 证明组合显著优于单特征。</li>
+<li>用 ROC 证明 score 本身是 strong attack detector（AUC&gt;0.85），独立报告为 by-product。</li>
+</ol>
+</div>
+
+<div class="card red">
+<h4>风险 3：4 页装不下</h4>
+<p><strong>备选</strong>：</p>
+<ol>
+<li>合并 M1+M2 描述（共 0.5 页 method）。</li>
+<li>Table I+II+III 压成一张 3 列大表。</li>
+<li>所有 ablation 进 supplementary。</li>
+<li>砍掉 M1 自适应半径，只留 M2+M3，题目改为 "<em>Anomaly-Gated Diffusion for Efficient Defense Against LiDAR Point Cloud Adversarial Attacks</em>"。</li>
+</ol>
+</div>
+
+<div class="card red">
+<h4>风险 4：审稿人指 Ada3Diff 已经"adaptive"</h4>
+<p><strong>表现</strong>：审稿人评 "<em>The adaptive idea is already explored in Ada3Diff (MM 2023). What's new?</em>"</p>
+<p><strong>预案（必须在 intro 第一段就反击）</strong>：</p>
+<ol>
+<li><strong>明确护城河</strong>：Ada3Diff 是 <em>point-level adaptive timestep on clean classification</em>；ASAP 是 <em>SPU-level adaptive radius + binary gate on raw LiDAR detection scenes</em>。两个 "adaptive" 不在同一层级。</li>
+<li><strong>实证差异</strong>：把 Ada3Diff 的 plane-fit distortion estimator 强行套到 KITTI 上跑，证明它在 sparse LiDAR scenes 上明显劣于 ASAP 的 SPU-级机制（plane-fitting 在稀疏区无法稳定拟合）。</li>
+<li><strong>引用顺位</strong>：Intro 第二段就引用 Ada3Diff，main figure 的 baseline 列里出现它——把"知情且超越"的信号摆在最前。</li>
+</ol>
+</div>
+
+<div class="card red">
+<h4>风险 5：与 LiDAR-SPD reported 数字可比性不足</h4>
+<p><strong>表现</strong>：审稿人评 "<em>The comparison to LiDAR-SPD is not fully controlled since only reported numbers are used.</em>"</p>
+<p><strong>预案</strong>：</p>
+<ol>
+<li>明确表中 LiDAR-SPD 为 <em>reported baseline</em>，不把它包装成本文实现结果。</li>
+<li>使用与 LiDAR-SPD reported setting 对齐的 <strong>KITTI val split + detector 配置</strong>，并在实验设置中逐项列出 detector checkpoint、split 与 attack budget。</li>
+<li>Ablation A2 里"ASAP without selective gating + uniform radius" 等价于一个 SPU-级 uniform diffusion baseline——作为本文内部公平对照。</li>
+</ol>
+</div>
+
+</div>
+<div class="callout ok"><span class="label">总体风险评估</span>
+<p>采取"自主提出 ASAP"叙事后，主要风险是 <strong>Ada3Diff 思路重叠</strong>（已有 4 维护城河应对）和 <strong>clean mAP 不回升</strong>（可调阈值 τ）。</p>
+<p><strong>缓解因素</strong>：</p>
+<ul>
+<li>3 个新模块（M1/M2/M3）本身是<strong>无需训练的几何方法</strong>——失败概率低</li>
+<li>扩散组件可直接复用 PointDP 的开源 score net</li>
+<li>OpenPCDet_uni 已有完整 detector 训练/评测 pipeline</li>
+<li>护城河（SPU 级 + 物理一致性 + LiDAR-specific）相对 Ada3Diff 清晰</li>
+<li>不需要复现 LiDAR-SPD，节省 W1-W4 大量工作量</li>
+</ul>
+<p><strong>预估出稿概率：65-75%</strong>。</p></div>
+</section>
+
+<section id="code">
+<h2>14. 关键伪代码</h2>
+
+<h3>14.1 顶层 pipeline</h3>
+<pre><span class="kw">class</span> <span class="fn">ASAP</span>(<span class="fn">SphericalPurification</span>):
+    <span class="kw">def</span> <span class="fn">__init__</span>(<span class="kw">self</span>, alpha=<span class="num">2.0</span>, beta=<span class="num">0.67</span>,
+                 r1_min=<span class="num">0.10</span>, r1_max=<span class="num">0.40</span>,
+                 tau=<span class="num">0.60</span>, knn_k=<span class="num">16</span>):
+        <span class="kw">self</span>.alpha = alpha
+        <span class="kw">self</span>.beta = beta
+        <span class="kw">self</span>.r1_min, <span class="kw">self</span>.r1_max = r1_min, r1_max
+        <span class="kw">self</span>.tau = tau
+        <span class="kw">self</span>.knn_k = knn_k
+        <span class="kw">self</span>.diff_model = <span class="fn">load_pretrained_diffusion</span>()    <span class="com"># PointDP-style score net</span>
+        <span class="kw">self</span>.encoder    = <span class="fn">PointNetPP_local_encoder</span>()      <span class="com"># local feature encoder E</span>
+
+    <span class="kw">def</span> <span class="fn">__call__</span>(<span class="kw">self</span>, point_cloud):
+        radii = <span class="kw">self</span>.<span class="fn">adaptive_radius</span>(point_cloud)        <span class="com"># Module 1</span>
+        units = <span class="kw">self</span>.<span class="fn">build_spu</span>(point_cloud, radii)
+        units = <span class="kw">self</span>.<span class="fn">spherical_projection</span>(units)            <span class="com"># physics-grounded occlusion prior</span>
+
+        scores     = <span class="kw">self</span>.<span class="fn">anomaly_score</span>(units)            <span class="com"># Module 2</span>
+        suspicious = scores &gt; <span class="kw">self</span>.tau
+
+        purified = <span class="kw">self</span>.<span class="fn">selective_diffuse</span>(units, suspicious) <span class="com"># Module 3</span>
+        <span class="kw">return</span> <span class="fn">unify</span>(purified)
+</pre>
+
+<h3>14.2 Module 1: Adaptive Radius (KNN-based)</h3>
+<pre><span class="kw">def</span> <span class="fn">adaptive_radius</span>(<span class="kw">self</span>, points):
+    <span class="com"># points: (N, 3)</span>
+    kdtree = <span class="fn">KDTree</span>(points)
+    dist, _ = kdtree.<span class="fn">query</span>(points, k=<span class="kw">self</span>.knn_k)
+    d_k = dist[:, -<span class="num">1</span>]                        <span class="com"># 第 k 近邻距离</span>
+    r1 = <span class="kw">self</span>.alpha * d_k
+    r1 = np.<span class="fn">clip</span>(r1, <span class="kw">self</span>.r1_min, <span class="kw">self</span>.r1_max)
+    <span class="kw">return</span> r1                                 <span class="com"># 每点一个 r1 候选</span>
+</pre>
+
+<h3>14.3 Module 2: Anomaly Scorer</h3>
+<pre><span class="kw">def</span> <span class="fn">anomaly_score</span>(<span class="kw">self</span>, units):
+    feats = []
+    <span class="kw">for</span> (center, idx) <span class="kw">in</span> units:
+        pts = points[idx]                       <span class="com"># (M, 3)</span>
+        <span class="com"># f1: compactness</span>
+        f1 = np.<span class="fn">std</span>(np.<span class="fn">linalg</span>.<span class="fn">norm</span>(pts - pts.<span class="fn">mean</span>(<span class="num">0</span>), axis=<span class="num">1</span>))
+        <span class="com"># f2: anisotropy via PCA</span>
+        cov = np.<span class="fn">cov</span>(pts.T)
+        evals = np.<span class="fn">linalg</span>.<span class="fn">eigvalsh</span>(cov)         <span class="com"># λ₁≤λ₂≤λ₃</span>
+        f2 = evals[<span class="num">0</span>] / (evals.<span class="fn">sum</span>() + <span class="num">1e-9</span>)
+        <span class="com"># f3: vMF kappa</span>
+        dirs  = (pts - center) / (np.<span class="fn">linalg</span>.<span class="fn">norm</span>(pts - center, axis=<span class="num">1</span>, keepdims=<span class="kw">True</span>) + <span class="num">1e-9</span>)
+        r_bar = np.<span class="fn">linalg</span>.<span class="fn">norm</span>(dirs.<span class="fn">mean</span>(<span class="num">0</span>))
+        kappa = r_bar * (<span class="num">3</span> - r_bar**<span class="num">2</span>) / (<span class="num">1</span> - r_bar**<span class="num">2</span> + <span class="num">1e-9</span>)
+        f3 = -np.<span class="fn">log</span>(kappa + <span class="num">1e-9</span>)
+        feats.<span class="fn">append</span>([f1, f2, f3])
+    feats = np.<span class="fn">array</span>(feats)
+    feats = (feats - feats.<span class="fn">mean</span>(<span class="num">0</span>)) / (feats.<span class="fn">std</span>(<span class="num">0</span>) + <span class="num">1e-9</span>)  <span class="com"># z-score</span>
+    score = feats @ <span class="kw">self</span>.w                       <span class="com"># 训练好的 w (3,)</span>
+    <span class="kw">return</span> score
+</pre>
+
+<h3>14.4 Module 3: Selective Diffusion (batched)</h3>
+<pre><span class="kw">def</span> <span class="fn">selective_diffuse</span>(<span class="kw">self</span>, units, suspicious):
+    <span class="kw">out</span> = []
+    suspicious_idx = np.<span class="fn">where</span>(suspicious)[<span class="num">0</span>]
+    <span class="com"># pad to common length and batch</span>
+    pts_list = [points[units[i][<span class="num">1</span>]] <span class="kw">for</span> i <span class="kw">in</span> suspicious_idx]
+    pts_batch, mask = <span class="fn">pad_and_stack</span>(pts_list)       <span class="com"># (k, N_max, 3)</span>
+    z_batch = <span class="kw">self</span>.encoder(pts_batch, mask)        <span class="com"># (k, D)</span>
+
+    pts_purified = <span class="kw">self</span>.<span class="fn">sdeint_batch</span>(
+        pts_batch, z_batch, mask,
+        t_start=<span class="num">0.1</span>, t_end=<span class="num">0.0</span>
+    )                                            <span class="com"># short reverse-SDE horizon</span>
+
+    <span class="com"># merge results</span>
+    <span class="kw">for</span> i, unit <span class="kw">in</span> <span class="fn">enumerate</span>(units):
+        <span class="kw">if</span> suspicious[i]:
+            j = <span class="fn">np.where</span>(suspicious_idx == i)[<span class="num">0</span>][<span class="num">0</span>]
+            <span class="kw">out</span>.<span class="fn">append</span>(<span class="fn">unpad</span>(pts_purified[j], mask[j]))
+        <span class="kw">else</span>:
+            <span class="kw">out</span>.<span class="fn">append</span>(points[unit[<span class="num">1</span>]])           <span class="com"># bypass</span>
+    <span class="kw">return</span> <span class="kw">out</span>
+</pre>
+</section>
+
+<section id="paperstructure">
+<h2>15. 4 页 ICASSP 写作结构（精确字数预估）</h2>
+
+<table>
+<thead><tr><th>Section</th><th>页数</th><th>内容</th><th>字数预估</th></tr></thead>
+<tbody>
+<tr><td><strong>I. Introduction</strong></td><td class="center">0.7</td><td>LiDAR 点云对抗攻击 → 现有防御局限 → ASAP 三贡献</td><td class="num center">~600</td></tr>
+<tr><td><strong>II. Related Work</strong></td><td class="center">0.3</td><td>3D point cloud adversarial attacks/defenses + diffusion purification + LiDAR-SPD</td><td class="num center">~250</td></tr>
+<tr><td><strong>III. Method</strong></td><td class="center">1.5</td><td>3.1 Overview (Fig 1) / 3.2 Adaptive Radius / 3.3 Anomaly Scorer / 3.4 Selective Diffusion</td><td class="num center">~1200</td></tr>
+<tr><td><strong>IV. Experiments</strong></td><td class="center">1.3</td><td>4.1 Adversarial Attack Setup / 4.2 ASR Robustness (Table I) / 4.3 Clean mAP &amp; Latency / 4.4 Ablation &amp; Visualization</td><td class="num center">~1100</td></tr>
+<tr><td><strong>V. Conclusion</strong></td><td class="center">0.2</td><td>总结 + future work</td><td class="num center">~150</td></tr>
+<tr><td><strong>VI. References</strong></td><td class="center">1.0</td><td>~30 篇引用</td><td class="num center">—</td></tr>
+</tbody>
+</table>
+
+<div class="callout">
+<span class="label">写作小技巧</span>
+<ul>
+<li><strong>Introduction</strong> 第一段先讲 LiDAR point cloud adversarial attacks，再明确 LiDAR-SPD 是 SPU 级净化的启发来源与 reported baseline。</li>
+<li><strong>Method</strong> 必含一张 framework figure（参考 Section 4 的 SVG）</li>
+<li><strong>Experiments</strong> 先放点扰动/点注入 attack setup，再放 ASR 主表；三张主表绝不能压缩成一张。</li>
+<li><strong>Visualization</strong> 必须给净化前后的 BEV 对比图（点云 + GT box + predicted box）</li>
+<li><strong>Abstract</strong> 控制在 150 字以内，必含三个数字：ASR 降低 X%、加速 Y×、clean mAP 不降</li>
+</ul>
+</div>
+</section>
+
+<section id="next">
+<h2>16. 下一步立即行动（本周）</h2>
+
+<ol>
+<li><strong>D1（今天）</strong>：把这份 proposal 给导师看一眼，确认方向 A 没原则性反对。</li>
+<li><strong>D2-D3</strong>：按以下顺序检查 OpenPCDet_uni 环境是否就绪
+<pre><span class="com"># 在 LiDAR_SPD 目录下激活 .venv</span>
+<span class="kw">source</span> .venv/bin/activate
+<span class="kw">cd</span> OpenPCDet_uni
+python <span class="op">-c</span> <span class="str">"import pcdet; print(pcdet.__version__)"</span>
+<span class="com"># 检查 KITTI 数据是否已经预处理</span>
+ls data/kitti/training/velodyne <span class="op">|</span> head <span class="op">-3</span>
+ls data/kitti/training/label_2 <span class="op">|</span> head <span class="op">-3</span></pre>
+</li>
+<li><strong>D4-D5</strong>：跑一个最简单的无防御 baseline，确认能输出 PointPillars 在 KITTI val 上的 mAP
+<pre>python tools/test.py <span class="op">--cfg_file</span> tools/cfgs/kitti_models/pointpillar.yaml <span class="op">\</span>
+    <span class="op">--ckpt</span> <span class="str">&lt;path/to/pointpillar.pth&gt;</span></pre>
+</li>
+<li><strong>D6-D7</strong>：从 <code>github.com/thu-ml/3D_Corruptions_AD</code> 拉一份 Sun20 攻击代码，挂到 OpenPCDet pipeline 上，跑出无防御下的 ASR（应当 ~88%）。这是后续所有实验的对照点。</li>
+</ol>
+
+<div class="callout ok">
+<span class="label">本周 milestone</span>
+<p><strong>W1 末尾你应该拥有</strong>：</p>
+<ul>
+<li>✓ 一份 PointPillars / PV-RCNN / CenterPoint 的 clean mAP 数字（对齐论文 75.3 / 82.8 / 76.9）</li>
+<li>✓ 一份 PointPillars 在 Sun20 攻击下的 ASR 数字（应 ~88%，无防御）</li>
+<li>✓ 一份 PointPillars 在 Wang21 攻击下的 ASR 数字（应 ~85%，无防御）</li>
+</ul>
+<p>有这三组数字就可以进入 W2 实现 ASAP 几何前端。</p>
+</div>
+</section>
+
+<footer>
+ASAP Proposal · LiDAR Point Cloud Adversarial Robustness · ICASSP 2026 · 编制于 2026-05-19<br>
+启发自：LiDAR-SPD (ICASSP 2025) — Cai, Wang, Sohel, Lei (UESTC + Murdoch)
+</footer>
+
+</main>
+</div>
+</body>
+</html>

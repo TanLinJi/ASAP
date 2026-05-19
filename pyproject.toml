@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "asap-lidar"
+version = "0.1.0"
+description = "Adaptive Spherical Anomaly-Guided Purification for LiDAR point cloud attacks"
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [
+  { name = "ASAP Contributors" }
+]
+dependencies = [
+  "numpy>=1.21",
+  "scipy>=1.7",
+  "scikit-learn>=1.0",
+  "tqdm>=4.64",
+  "pyyaml>=6.0"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.0",
+  "ruff>=0.1.0"
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
