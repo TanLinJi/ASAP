@@ -78,10 +78,10 @@ Optional OpenPCDet extras:
 
 ### Recommended local placement
 
-Use the existing OpenPCDet_uni backend layout:
+Use the ASAP project data layout:
 
 ```text
-/root/autodl-tmp/LiDAR_SPD/OpenPCDet_uni/data/kitti/
+/root/autodl-tmp/ASAP/data/kitti/
 ├── ImageSets/
 ├── training/
 │   ├── calib/
@@ -94,7 +94,9 @@ Use the existing OpenPCDet_uni backend layout:
     └── velodyne/
 ```
 
-Do not copy KITTI into the ASAP Git repository. Datasets should stay outside Git and be referenced by path or symlink.
+The KITTI files should live under the ASAP project directory, but they must not be committed to Git. The repository `.gitignore` keeps `data/**` ignored while preserving `data/.gitkeep`.
+
+OpenPCDet_uni should be treated as an external detection backend. When OpenPCDet needs its conventional `data/kitti` path, expose the ASAP dataset to it by symlink or by an ASAP-specific dataset config, instead of storing the real data under the old `LiDAR_SPD` project.
 
 ## 3. Stage A: prepare KITTI and OpenPCDet baseline
 
@@ -115,7 +117,13 @@ If the optional testing split is downloaded:
 
 ### A2. Generate OpenPCDet KITTI infos
 
-Run from `/root/autodl-tmp/LiDAR_SPD/OpenPCDet_uni`:
+Before generating infos, make the OpenPCDet backend see the ASAP dataset path. The preferred layout remains:
+
+```text
+/root/autodl-tmp/ASAP/data/kitti/
+```
+
+If using OpenPCDet_uni unchanged, its `data/kitti` path should point to the ASAP dataset through a symlink. Then run from `/root/autodl-tmp/LiDAR_SPD/OpenPCDet_uni`:
 
 ```bash
 python -m pcdet.datasets.kitti.kitti_dataset create_kitti_infos tools/cfgs/dataset_configs/kitti_dataset.yaml
@@ -123,11 +131,11 @@ python -m pcdet.datasets.kitti.kitti_dataset create_kitti_infos tools/cfgs/datas
 
 Expected generated files include:
 
-- `data/kitti/kitti_infos_train.pkl`
-- `data/kitti/kitti_infos_val.pkl`
-- `data/kitti/kitti_infos_trainval.pkl`
-- `data/kitti/kitti_dbinfos_train.pkl`
-- `data/kitti/gt_database/`
+- `/root/autodl-tmp/ASAP/data/kitti/kitti_infos_train.pkl`
+- `/root/autodl-tmp/ASAP/data/kitti/kitti_infos_val.pkl`
+- `/root/autodl-tmp/ASAP/data/kitti/kitti_infos_trainval.pkl`
+- `/root/autodl-tmp/ASAP/data/kitti/kitti_dbinfos_train.pkl`
+- `/root/autodl-tmp/ASAP/data/kitti/gt_database/`
 
 If the testing split is present, `kitti_infos_test.pkl` can also be generated.
 
@@ -379,7 +387,11 @@ Recommended ablations:
 
 ### User-side action
 
-Download KITTI 3D object detection data:
+Download KITTI 3D object detection data and place it under:
+
+```text
+/root/autodl-tmp/ASAP/data/kitti/
+```
 
 Required first:
 
