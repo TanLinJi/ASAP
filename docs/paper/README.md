@@ -24,6 +24,7 @@ Each section is kept in its own Markdown file so that drafting, review, and Git 
 | `04_experiments.md`  | 4. Experiments                       | 1 - 1.5 columns           |
 | `05_conclusion.md`   | 5. Conclusion                        | about 1/4 column          |
 | `detector_selection.md` | Detector selection notes          | internal planning note    |
+| `experiments_overview.html` | Unified experiment-ID system + status board | internal planning note (open in browser) |
 | `references.bib`     | References (BibTeX)                  | grows as we cite          |
 
 ## Section status
@@ -31,13 +32,14 @@ Each section is kept in its own Markdown file so that drafting, review, and Git 
 | Section            | Status        | Notes                                      |
 |--------------------|---------------|--------------------------------------------|
 | Abstract           | first draft   | written before experimental numbers exist  |
-| Introduction       | skeleton      | bullets and structure only                 |
-| Related work       | skeleton      | categories listed, citations TBD           |
-| Method             | skeleton      | M1, M2, M3 subsections outlined            |
-| Experiments        | skeleton      | datasets, attacks, baselines listed        |
+| Introduction       | first draft   | 1.1-1.4 in prose; cites attacks/datasets/diffusion baselines |
+| Related work       | first draft   | 2.1 attacks / 2.2 defenses / 2.3 diffusion purification     |
+| Method             | first draft   | full math derivations for M1/M2/M3 + Algorithm 1 + complexity |
+| Experiments        | first draft   | 4.1-4.5 in prose; Tables 1-3 with [XX.X] placeholders pending experiments |
 | Detector selection | planning note | DSVT-guided modern detector plan           |
-| Conclusion         | skeleton      | placeholder                                |
-| References         | empty         | populate with BibTeX as we cite            |
+| Experiments overview | planning note | E0-E6 experiment IDs, MS1-MS4 milestones, status board |
+| Conclusion         | first draft   | written; numerical claims [XX.X] pending   |
+| References         | seeded        | dataset / attack / defense / diffusion stubs added; all marked UNVERIFIED |
 
 ## Writing conventions
 

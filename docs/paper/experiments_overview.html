@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>ASAP 实验总览 (Experiments Overview)</title>
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <style>
+    :root {
+      --primary: #1f6feb;
+      --bg: #fafbfc;
+      --border: #d0d7de;
+      --code-bg: #f6f8fa;
+      --done: #1a7f37;
+      --running: #bf8700;
+      --pending: #6e7781;
+      --highlight: #fff8c5;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      line-height: 1.7;
+      max-width: 1100px;
+      margin: 24px auto;
+      padding: 0 24px;
+      color: #1f2328;
+      background: #ffffff;
+    }
+    h1 {
+      border-bottom: 3px solid var(--primary);
+      padding-bottom: 8px;
+      color: var(--primary);
+    }
+    h2 {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 6px;
+      margin-top: 40px;
+    }
+    h3 { margin-top: 28px; }
+    code {
+      background: var(--code-bg);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: "JetBrains Mono", Consolas, Menlo, monospace;
+      font-size: 0.9em;
+    }
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 14px;
+      overflow-x: auto;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 12px 0 18px 0;
+      font-size: 0.94em;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 8px 10px;
+      vertical-align: top;
+    }
+    th {
+      background: var(--bg);
+      text-align: left;
+    }
+    tr:nth-child(even) td { background: #fcfcfd; }
+    .id-tag {
+      display: inline-block;
+      font-family: "JetBrains Mono", Consolas, Menlo, monospace;
+      font-weight: 600;
+      color: #ffffff;
+      background: var(--primary);
+      padding: 1px 8px;
+      border-radius: 4px;
+      font-size: 0.86em;
+      letter-spacing: 0.3px;
+    }
+    .id-tag.method { background: #8250df; }
+    .id-tag.attack { background: #cf222e; }
+    .id-tag.defense { background: #1a7f37; }
+    .id-tag.ablation { background: #bf8700; color: #1f2328; }
+    .badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 0.82em;
+      font-weight: 600;
+      color: #ffffff;
+    }
+    .badge.done { background: var(--done); }
+    .badge.running { background: var(--running); }
+    .badge.pending { background: var(--pending); }
+    .badge.optional { background: #6639ba; }
+    .callout {
+      border-left: 4px solid var(--primary);
+      background: #f0f7ff;
+      padding: 12px 16px;
+      margin: 16px 0;
+      border-radius: 0 6px 6px 0;
+    }
+    .callout.warn {
+      border-color: #bf8700;
+      background: #fff8c5;
+    }
+    .callout.note {
+      border-color: #1a7f37;
+      background: #dafbe1;
+    }
+    nav.toc {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px 20px;
+      margin: 16px 0 24px 0;
+    }
+    nav.toc ol { margin: 0; padding-left: 22px; }
+    nav.toc a { color: var(--primary); text-decoration: none; }
+    nav.toc a:hover { text-decoration: underline; }
+    .small { font-size: 0.86em; color: #57606a; }
+    .formula-row td:first-child { width: 36%; }
+  </style>
+</head>
+<body>
+
+<h1>ASAP 实验总览</h1>
+
+<p class="small">
+  文档位置：<code>/root/autodl-tmp/ASAP/docs/paper/experiments_overview.html</code><br>
+  目的：在正式开始任何实验之前，统一锁定<strong>方法模块代号</strong>、<strong>实验代号</strong>、<strong>实验依赖关系</strong>和<strong>当前状态</strong>。所有后续讨论与代码实现，请按本文档代号互相引用，避免混乱。
+</p>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec-goal">项目目标与核心 claim</a></li>
+    <li><a href="#sec-abbrev">缩写一览（中英对照）</a></li>
+    <li><a href="#sec-method">方法模块代号 M1 / M2 / M3</a></li>
+    <li><a href="#sec-exp">实验代号体系 E0–E6</a></li>
+    <li><a href="#sec-matrix">主结果矩阵 E4</a></li>
+    <li><a href="#sec-deps">实验依赖关系</a></li>
+    <li><a href="#sec-schedule">推荐执行顺序与里程碑</a></li>
+    <li><a href="#sec-status">当前状态追踪</a></li>
+  </ol>
+</nav>
+
+<!-- =========================================================== -->
+<h2 id="sec-goal">1. 项目目标与核心 claim</h2>
+
+<p><strong>方法名称</strong>：<code>ASAP</code> = <em>Adaptive Spherical Anomaly-Guided Purification</em>（自适应球形异常引导净化）。</p>
+
+<p><strong>论文目标</strong>：投稿 IEEE ICASSP 2026，提出一个面向 LiDAR 3D 目标检测的<strong>检测器无关</strong>（detector-agnostic）、<strong>仅推理时使用</strong>（inference-only）的对抗净化框架。</p>
+
+<div class="callout">
+  <strong>摘要里要支撑的 4 个核心 claim：</strong>
+  <ol>
+    <li>ASAP 不重训任何检测器，纯推理时净化。</li>
+    <li>ASAP 在多种检测器架构上都有效（detector-agnostic）。</li>
+    <li>ASAP 在多个数据集（KITTI 与 Waymo）上都有效。</li>
+    <li>ASAP 把对抗攻击的 Attack Success Rate 降低 60%，同时干净场景检测性能基本不下降。</li>
+  </ol>
+</div>
+
+<!-- =========================================================== -->
+<h2 id="sec-abbrev">2. 缩写一览（中英对照）</h2>
+
+<table>
+  <thead>
+    <tr><th>缩写</th><th>英文全称</th><th>中文含义 / 在 ASAP 中的作用</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>ASAP</code></td><td>Adaptive Spherical Anomaly-Guided Purification</td><td>本论文方法名。</td></tr>
+    <tr><td><code>SPU</code></td><td>Spherical Purification Unit</td><td>球形净化单元。点云被划分成的局部球。</td></tr>
+    <tr><td><code>KNN</code></td><td>k-Nearest Neighbors</td><td>k 近邻。M1 用 k 近邻距离决定球半径。</td></tr>
+    <tr><td><code>PCA</code></td><td>Principal Component Analysis</td><td>主成分分析。M2 用它估计局部各向异性。</td></tr>
+    <tr><td><code>vMF</code></td><td>von Mises-Fisher distribution</td><td>球面上的 “高斯”。M2 用它估计角度集中度 $\kappa$。</td></tr>
+    <tr><td><code>VP-SDE</code></td><td>Variance-Preserving Stochastic Differential Equation</td><td>方差保持随机微分方程。一种连续扩散过程，M3 用它做点云级扩散净化。</td></tr>
+    <tr><td><code>ROC</code></td><td>Receiver Operating Characteristic</td><td>受试者工作特征曲线，用于阈值 $\tau$ 的标定。</td></tr>
+    <tr><td><code>Youden-J</code></td><td>Youden Index $J$</td><td>$J = \text{TPR} - \text{FPR}$，从 ROC 曲线选最优阈值。</td></tr>
+    <tr><td><code>AP</code> / <code>mAP</code></td><td>(mean) Average Precision</td><td>检测平均精度。KITTI 用类别 AP，Waymo 用 mAP。</td></tr>
+    <tr><td><code>mAPH</code></td><td>mean Average Precision weighted by Heading</td><td>Waymo 评测中考虑朝向的 mAP。</td></tr>
+    <tr><td><code>NDS</code></td><td>nuScenes Detection Score</td><td>nuScenes 综合得分（暂留作未来扩展）。</td></tr>
+    <tr><td><code>ASR</code></td><td>Attack Success Rate</td><td>攻击成功率，衡量攻击让检测器漏检/错检的比例。</td></tr>
+    <tr><td><code>SOR</code> / <code>ROR</code></td><td>Statistical / Radius Outlier Removal</td><td>两种经典点云去噪基线。</td></tr>
+  </tbody>
+</table>
+
+<!-- =========================================================== -->
+<h2 id="sec-method">3. 方法模块代号 <code>M1 / M2 / M3</code></h2>
+
+<p>论文 Method 章节（<code>03_method.md</code>）将方法切分为三个模块。<strong>所有代码、消融、推导都按这套代号引用</strong>。</p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width:11%;">代号</th>
+      <th style="width:24%;">模块名</th>
+      <th>核心数学对象</th>
+      <th style="width:22%;">代码落点</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><span class="id-tag method">M1</span></td>
+      <td><strong>Adaptive Radius</strong><br>自适应半径 SPU 划分</td>
+      <td>
+        外半径 $r_1(p) = \mathrm{clip}(\alpha\, d_k(p), [r_{\min}, r_{\max}])$，<br>
+        内半径 $r_2(p) = \beta\, r_1(p)$，默认 $\beta = 0.67$。<br>
+        默认 $\alpha = 2,\ k = 16,\ r_{\min} = 0.10\text{ m},\ r_{\max} = 0.40\text{ m}$。
+      </td>
+      <td><code>src/asap/geometry/</code></td>
+    </tr>
+    <tr>
+      <td><span class="id-tag method">M2</span></td>
+      <td><strong>Anomaly Scorer</strong><br>几何异常评分</td>
+      <td>
+        4 个标量特征 $\{f_c, f_a, f_v, f_d\}$ 融合得到 $s(p) \in [0, 1]$；<br>
+        阈值 $\tau$ 由 ROC 上的 Youden-$J$ 标定。
+      </td>
+      <td><code>src/asap/scoring/</code></td>
+    </tr>
+    <tr>
+      <td><span class="id-tag method">M3</span></td>
+      <td><strong>Selective Diffusion</strong><br>选择性扩散净化</td>
+      <td>
+        若 $s(p) > \tau$，对内点集 $P_{\mathrm{inner}}(p)$ 做 VP-SDE 短轨迹正向加噪 + 反向去噪；<br>
+        其他区域保持不变。
+      </td>
+      <td><code>src/asap/diffusion/</code>, <code>src/asap/pipeline/</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout note">
+  <strong>注</strong>：每个模块在<a href="#sec-exp">实验代号体系</a>中都有对应的 <em>消融实验</em>（见 E5）。改动模块时，请同步更新对应消融。
+</div>
+
+<!-- =========================================================== -->
+<h2 id="sec-exp">4. 实验代号体系 <code>E0–E6</code></h2>
+
+<p>所有实验按主线分组。每条实验都有：唯一代号 + 目的 + 数据集 + 检测器 + 攻击 + 评测指标 + 依赖项 + 状态。</p>
+
+<h3>E0. 环境与数据准备 <span class="badge done">基本完成</span></h3>
+<table>
+  <thead><tr>
+    <th>代号</th><th>名称</th><th>目的</th><th>状态</th>
+  </tr></thead>
+  <tbody>
+    <tr><td><span class="id-tag">E0.1</span></td><td>KITTI 数据集</td><td>下载、解压、校验、ImageSets 划分。</td><td><span class="badge done">done</span></td></tr>
+    <tr><td><span class="id-tag">E0.2</span></td><td><code>asap</code> conda 环境</td><td>Python 3.9 + PyTorch 2.5.1+cu124 + spconv 2.3.6。</td><td><span class="badge done">done</span></td></tr>
+    <tr><td><span class="id-tag">E0.3</span></td><td>OpenPCDet 后端 + KITTI infos</td><td>软链接 KITTI、生成 <code>kitti_infos_*.pkl</code>、生成 <code>gt_database</code>。</td><td><span class="badge done">done</span></td></tr>
+    <tr><td><span class="id-tag">E0.4</span></td><td>检测器预训练权重</td><td>下载 PointPillars / PV-RCNN++ / DSVT / VoxelNeXt 等官方 checkpoint。</td><td><span class="badge pending">pending</span></td></tr>
+    <tr><td><span class="id-tag">E0.5</span></td><td>Waymo 数据准备</td><td>申请、下载、转换为 OpenPCDet infos。</td><td><span class="badge pending">pending</span></td></tr>
+  </tbody>
+</table>
+
+<h3>E1. Clean Baseline（干净场景检测器基线）</h3>
+<p>在干净场景下跑各个检测器，得到上界参考。所有 ASAP 主表都需要这一行。</p>
+<table>
+  <thead><tr>
+    <th>代号</th><th>数据集</th><th>检测器</th><th>评测指标</th><th>状态</th>
+  </tr></thead>
+  <tbody>
+    <tr><td><span class="id-tag">E1.1</span></td><td>KITTI val</td><td>PointPillars</td><td>3D AP @ Car/Ped/Cyc</td><td><span class="badge pending">pending</span></td></tr>
+    <tr><td><span class="id-tag">E1.2</span></td><td>KITTI val</td><td>PV-RCNN++</td><td>3D AP @ Car/Ped/Cyc</td><td><span class="badge pending">pending</span></td></tr>
+    <tr><td><span class="id-tag">E1.3</span></td><td>Waymo val</td><td>DSVT-Voxel</td><td>L2 mAP / mAPH</td><td><span class="badge pending">pending</span></td></tr>
+    <tr><td><span class="id-tag">E1.4</span></td><td>Waymo val</td><td>VoxelNeXt</td><td>L2 mAP / mAPH</td><td><span class="badge pending">pending</span></td></tr>
+  </tbody>
+</table>
+
+<h3>E2. Adversarial Attacks（攻击复现）</h3>
+<p>每个攻击产生一个 “受扰 val 集” + 对应攻击日志。后续所有防御都在这些受扰集上评测。</p>
+<table>
+  <thead><tr>
+    <th>代号</th><th>攻击名</th><th>类别</th><th>说明</th><th>状态</th>
+  </tr></thead>
+  <tbody>
+    <tr><td><span class="id-tag attack">E2.1</span></td><td>Point Injection</td><td>注入</td><td>在场景中注入对抗点（簇或贴近物体表面）。</td><td><span class="badge pending">pending</span></td></tr>
+    <tr><td><span class="id-tag attack">E2.2</span></td><td>Point Perturbation</td><td>扰动</td><td>对已有点做有界 $\ell_\infty$ 或 $\ell_2$ 扰动。</td><td><span class="badge pending">pending</span></td></tr>
+    <tr><td><span class="id-tag attack">E2.3</span></td><td>Point Dropping</td><td>丢弃</td><td>选择性丢弃关键点，使检测器漏检。</td><td><span class="badge pending">pending</span></td></tr>
+  </tbody>
+</table>
+
+<h3>E3. Baseline Defenses（防御基线）</h3>
+<table>
+  <thead><tr>
+    <th>代号</th><th>防御方法</th><th>类别</th><th>说明</th><th>状态</th>
+  </tr></thead>
+  <tbody>
+    <tr><td><span class="id-tag defense">E3.1</span></td><td>SOR</td><td>统计去噪</td><td>Statistical Outlier Removal。基于 KNN 距离统计。</td><td><span class="badge pending">pending</span></td></tr>
+    <tr><td><span class="id-tag defense">E3.2</span></td><td>ROR</td><td>半径去噪</td><td>Radius Outlier Removal。固定半径下点数过少则去除。</td><td><span class="badge pending">pending</span></td></tr>
+    <tr><td><span class="id-tag defense">E3.3</span></td><td>Uniform SPU diffusion</td><td>ASAP 内部消融</td><td>对所有 SPU 做扩散，没有 M2 选择性 gating。用于证明 selective gating 的价值。</td><td><span class="badge pending">pending</span></td></tr>
+    <tr><td><span class="id-tag defense">E3.4</span></td><td>外部已发表 purifier</td><td>外部对照</td><td>例如 Ada3Diff 风格的扩散净化器，按字数允许收录。</td><td><span class="badge optional">optional</span></td></tr>
+  </tbody>
+</table>
+
+<h3>E4. ASAP Main Results（主结果，detector-agnostic 主要证据）</h3>
+<p>本组实验直接支撑摘要 claim。每个 cell 是 “(数据集, 检测器, 攻击, 防御方法)” 四元组下的 mAP / ASR。详见<a href="#sec-matrix">主结果矩阵</a>。</p>
+<table>
+  <thead><tr>
+    <th>代号</th><th>数据集</th><th>检测器</th><th>覆盖攻击</th><th>覆盖防御</th><th>状态</th>
+  </tr></thead>
+  <tbody>
+    <tr><td><span class="id-tag">E4.1</span></td><td>KITTI val</td><td>PointPillars</td><td>E2.1, E2.2, E2.3</td><td>No def, E3.1, E3.3, ASAP</td><td><span class="badge pending">pending</span></td></tr>
+    <tr><td><span class="id-tag">E4.2</span></td><td>KITTI val</td><td>PV-RCNN++</td><td>E2.1, E2.2, E2.3</td><td>No def, E3.1, E3.3, ASAP</td><td><span class="badge pending">pending</span></td></tr>
+    <tr><td><span class="id-tag">E4.3</span></td><td>Waymo val</td><td>DSVT-Voxel</td><td>E2.1, E2.2, E2.3</td><td>No def, E3.1, E3.3, ASAP</td><td><span class="badge pending">pending</span></td></tr>
+    <tr><td><span class="id-tag">E4.4</span></td><td>Waymo val</td><td>VoxelNeXt</td><td>E2.1, E2.2, E2.3</td><td>No def, E3.1, E3.3, ASAP</td><td><span class="badge pending">pending</span></td></tr>
+    <tr><td><span class="id-tag">E4.5</span></td><td>Waymo val</td><td>MPPNet</td><td>E2.1, E2.2, E2.3</td><td>No def, E3.1, E3.3, ASAP</td><td><span class="badge optional">optional</span></td></tr>
+  </tbody>
+</table>
+
+<h3>E5. Ablation（消融实验，针对 M1/M2/M3）</h3>
+<p>消融实验固定一个数据集 + 一个检测器（建议 KITTI + PointPillars，最便宜），只动单个变量。</p>
+<table>
+  <thead><tr>
+    <th>代号</th><th>消融对象</th><th>对照设置</th><th>目的</th><th>状态</th>
+  </tr></thead>
+  <tbody>
+    <tr><td><span class="id-tag ablation">E5.1</span></td><td>M1 自适应半径</td><td>固定半径 vs $r_1(p) = \mathrm{clip}(\alpha\, d_k(p), [r_{\min}, r_{\max}])$</td><td>证明自适应半径有效。</td><td><span class="badge pending">pending</span></td></tr>
+    <tr><td><span class="id-tag ablation">E5.2</span></td><td>M2 异常评分组件</td><td>$\{f_c\}$ / $\{f_a\}$ / $\{f_v\}$ / $\{f_d\}$ vs 全部融合</td><td>证明 4 个特征互补。</td><td><span class="badge pending">pending</span></td></tr>
+    <tr><td><span class="id-tag ablation">E5.3</span></td><td>M3 选择性扩散</td><td>全扩散（E3.3） vs 仅 $s(p) > \tau$ 的 SPU</td><td>证明 selective gating 价值。</td><td><span class="badge pending">pending</span></td></tr>
+    <tr><td><span class="id-tag ablation">E5.4</span></td><td>阈值 $\tau$</td><td>沿 ROC 扫描 $\tau$</td><td>给出敏感性曲线，定 default $\tau$。</td><td><span class="badge pending">pending</span></td></tr>
+  </tbody>
+</table>
+
+<h3>E6. Cost Analysis（推理成本）</h3>
+<table>
+  <thead><tr>
+    <th>代号</th><th>测量内容</th><th>报告形式</th><th>状态</th>
+  </tr></thead>
+  <tbody>
+    <tr><td><span class="id-tag">E6.1</span></td><td>每帧推理时延</td><td>无防御 / SOR / Uniform / ASAP，单位 ms。</td><td><span class="badge pending">pending</span></td></tr>
+    <tr><td><span class="id-tag">E6.2</span></td><td>SPU 选择比例</td><td>不同攻击下 ASAP 平均处理 SPU 数 / 总 SPU 数。</td><td><span class="badge pending">pending</span></td></tr>
+  </tbody>
+</table>
+
+<!-- =========================================================== -->
+<h2 id="sec-matrix">5. 主结果矩阵（E4 详细展开）</h2>
+
+<p>正式投稿表格的逻辑模板：每个 cell 报告 “干净 baseline / 受攻击未防御 / 防御后” 三类数字以及 <strong>ASR↓</strong>。</p>
+
+<table>
+  <thead>
+    <tr>
+      <th rowspan="2">数据集</th>
+      <th rowspan="2">检测器</th>
+      <th rowspan="2">检测器家族</th>
+      <th rowspan="2">攻击</th>
+      <th rowspan="2">指标</th>
+      <th colspan="4" style="text-align:center;">防御方法（同攻击下对比）</th>
+    </tr>
+    <tr>
+      <th>No defense</th>
+      <th>SOR (E3.1)</th>
+      <th>Uniform diff (E3.3)</th>
+      <th><strong>ASAP (ours)</strong></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td rowspan="3">KITTI</td><td rowspan="3">PointPillars (E4.1)</td><td rowspan="3">Pillar-based one-stage</td>
+      <td>Injection</td><td>3D AP / ASR</td><td>TBD</td><td>TBD</td><td>TBD</td><td>TBD</td></tr>
+    <tr><td>Perturbation</td><td>3D AP / ASR</td><td>TBD</td><td>TBD</td><td>TBD</td><td>TBD</td></tr>
+    <tr><td>Dropping</td><td>3D AP / ASR</td><td>TBD</td><td>TBD</td><td>TBD</td><td>TBD</td></tr>
+
+    <tr><td rowspan="3">KITTI</td><td rowspan="3">PV-RCNN++ (E4.2)</td><td rowspan="3">Voxel-point two-stage</td>
+      <td>Injection</td><td>3D AP / ASR</td><td>TBD</td><td>TBD</td><td>TBD</td><td>TBD</td></tr>
+    <tr><td>Perturbation</td><td>3D AP / ASR</td><td>TBD</td><td>TBD</td><td>TBD</td><td>TBD</td></tr>
+    <tr><td>Dropping</td><td>3D AP / ASR</td><td>TBD</td><td>TBD</td><td>TBD</td><td>TBD</td></tr>
+
+    <tr><td rowspan="3">Waymo</td><td rowspan="3">DSVT-Voxel (E4.3)</td><td rowspan="3">Dynamic sparse voxel transformer</td>
+      <td>Injection</td><td>L2 mAP/mAPH / ASR</td><td>TBD</td><td>TBD</td><td>TBD</td><td>TBD</td></tr>
+    <tr><td>Perturbation</td><td>L2 mAP/mAPH / ASR</td><td>TBD</td><td>TBD</td><td>TBD</td><td>TBD</td></tr>
+    <tr><td>Dropping</td><td>L2 mAP/mAPH / ASR</td><td>TBD</td><td>TBD</td><td>TBD</td><td>TBD</td></tr>
+
+    <tr><td rowspan="3">Waymo</td><td rowspan="3">VoxelNeXt (E4.4)</td><td rowspan="3">Fully sparse voxel detector</td>
+      <td>Injection</td><td>L2 mAP/mAPH / ASR</td><td>TBD</td><td>TBD</td><td>TBD</td><td>TBD</td></tr>
+    <tr><td>Perturbation</td><td>L2 mAP/mAPH / ASR</td><td>TBD</td><td>TBD</td><td>TBD</td><td>TBD</td></tr>
+    <tr><td>Dropping</td><td>L2 mAP/mAPH / ASR</td><td>TBD</td><td>TBD</td><td>TBD</td><td>TBD</td></tr>
+  </tbody>
+</table>
+
+<div class="callout warn">
+  <strong>体量提醒</strong>：E4 一共 <code>4 detector × 3 attack × 4 method = 48 cells</code>。如果 ICASSP 4 页空间不够，建议主表只放 mAP 主指标，把详细 Car/Ped/Cyc 拆分和 ASR 放进补充材料。
+</div>
+
+<!-- =========================================================== -->
+<h2 id="sec-deps">6. 实验依赖关系</h2>
+
+<p>下方依赖图说明了实验之间必须先做后做的关系。<strong>箭头表示 “依赖于”</strong>。</p>
+
+<pre>
+E0.1 KITTI ─┐
+E0.2 env   ─┼─► E0.3 infos ─┬─► E1.1 PointPillars baseline ─┐
+E0.4 ckpt  ─┘               ├─► E1.2 PV-RCNN++ baseline    ─┤
+                            └─► E2.1/2.2/2.3 attacks ──────┐│
+                                                           ││
+E0.5 Waymo ─► E1.3/1.4 baselines ─► E2.x on Waymo ─────────┤│
+                                                           ││
+                                                  E3.1 SOR ─┤│
+                                                  E3.2 ROR ─┤│
+                                                  E3.3 Uni ─┤│
+                                                            │└─► E4.1 KITTI/PointPillars 主结果
+                                                            └──► E4.2 KITTI/PV-RCNN++
+                                                                 E4.3 Waymo/DSVT-Voxel
+                                                                 E4.4 Waymo/VoxelNeXt
+                                                                 E4.5 Waymo/MPPNet (optional)
+                                                                       │
+                                                                       └─► E5.1–5.4 消融、E6 成本
+</pre>
+
+<p>关键约束：</p>
+<ul>
+  <li>E1 必须早于对应数据集和检测器的 E4。</li>
+  <li>E2 攻击必须先生成受扰 val 集，才能跑 E3 / E4。</li>
+  <li>E5 消融建议在 KITTI + PointPillars 上完成（最便宜）。</li>
+  <li>E6 成本测量建议与 E4.1 同时进行（同一台机器，避免硬件差异）。</li>
+</ul>
+
+<!-- =========================================================== -->
+<h2 id="sec-schedule">7. 推荐执行顺序与里程碑</h2>
+
+<p>按 4 个里程碑推进。<strong>每完成一个里程碑就写一段实验记录到论文里</strong>。</p>
+
+<table>
+  <thead><tr>
+    <th>里程碑</th><th>包含的实验代号</th><th>输出</th><th>对应论文位置</th>
+  </tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>MS1. KITTI 完整闭环</strong></td>
+      <td>E0.4 (PointPillars ckpt) → E1.1 → E2.x → E3.1 → E3.3 → E4.1 + E5.* + E6.*</td>
+      <td>第一份完整结果（含消融 + 成本）。</td>
+      <td>主表第 1–3 行 + 消融表 + 成本段。</td>
+    </tr>
+    <tr>
+      <td><strong>MS2. KITTI 检测器扩展</strong></td>
+      <td>E0.4 (PV-RCNN++ ckpt) → E1.2 → E4.2</td>
+      <td>验证 KITTI 内部 detector-agnostic。</td>
+      <td>主表 KITTI 第二组检测器行。</td>
+    </tr>
+    <tr>
+      <td><strong>MS3. Waymo 扩展</strong></td>
+      <td>E0.5 → E0.4 (DSVT/VoxelNeXt ckpt) → E1.3, E1.4 → E2.x on Waymo → E4.3, E4.4</td>
+      <td>支撑“跨数据集 + 跨现代检测器”的最强 claim。</td>
+      <td>主表 Waymo 行；摘要 60% 数字回填。</td>
+    </tr>
+    <tr>
+      <td><strong>MS4. 论文定稿</strong></td>
+      <td>整理所有图表 + 完成 03_method 数学推导 + 撰写 Intro/Related/Conclusion + 引用整理</td>
+      <td>ICASSP 投稿稿。</td>
+      <td>全部章节 + references.bib。</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout note">
+  <strong>当前推荐</strong>：先把 03_method.md 的数学推导补完整（M1/M2/M3 公式 + 总体 pipeline 算法伪代码），然后立即进入 <strong>MS1</strong>。
+</div>
+
+<!-- =========================================================== -->
+<h2 id="sec-status">8. 当前状态追踪</h2>
+
+<p>本节是<strong>动态状态板</strong>，每完成一项实验就来这里更新 <code>状态</code> 一栏。建议同步更新到 <code>progress.txt</code>（如果用得到）。</p>
+
+<table>
+  <thead><tr>
+    <th>代号</th><th>条目</th><th>当前状态</th><th>备注</th>
+  </tr></thead>
+  <tbody>
+    <tr><td><span class="id-tag">E0.1</span></td><td>KITTI 数据准备</td><td><span class="badge done">done</span></td><td>train 3712 / val 3769 / test 7518，已校验。</td></tr>
+    <tr><td><span class="id-tag">E0.2</span></td><td>asap conda 环境</td><td><span class="badge done">done</span></td><td>Python 3.9 + PyTorch 2.5.1+cu124 + spconv 2.3.6。</td></tr>
+    <tr><td><span class="id-tag">E0.3</span></td><td>OpenPCDet + KITTI infos</td><td><span class="badge done">done</span></td><td>infos 4 个 pkl + gt_database 19700 个 bin。</td></tr>
+    <tr><td><span class="id-tag">E0.4</span></td><td>检测器预训练权重</td><td><span class="badge pending">pending</span></td><td>需要先下载 PointPillars KITTI 官方 checkpoint。</td></tr>
+    <tr><td><span class="id-tag">E0.5</span></td><td>Waymo 数据准备</td><td><span class="badge pending">pending</span></td><td>放到 MS3 再处理。</td></tr>
+    <tr><td>—</td><td>方法论 03_method.md 数学推导</td><td><span class="badge running">in progress</span></td><td>下一步立即补完整。</td></tr>
+    <tr><td>—</td><td>所有 E1–E6</td><td><span class="badge pending">pending</span></td><td>等方法论定稿后启动 MS1。</td></tr>
+  </tbody>
+</table>
+
+<hr>
+<p class="small">
+  本文档与 <code>00_abstract.md</code> / <code>03_method.md</code> / <code>04_experiments.md</code> / <code>detector_selection.md</code> 共同构成 ASAP 论文的设计与执行依据。<br>
+  修改任何模块代号 (M1/M2/M3) 或实验代号 (E*) 时，请同步更新本文件与相关 Markdown。
+</p>
+
+</body>
+</html>
