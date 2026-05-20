@@ -49,4 +49,13 @@ Then add an entry under "Vendored projects" below.
 
 ## Vendored projects
 
-No vendored projects yet.
+### OpenPCDet
+
+- **Upstream URL**: https://github.com/open-mmlab/OpenPCDet
+- **Recorded commit**: TODO: fill in from upstream before removing `.git` on a fresh clone
+- **License**: Apache License 2.0
+- **Purpose**: LiDAR 3D object detection backend for KITTI PointPillars baselines and detector evaluation.
+- **Local modifications**:
+  - `pcdet/datasets/__init__.py`: make `Argo2Dataset` registration optional when the Argoverse 2 dependency `av2` is not installed, so KITTI-only data preparation can run without installing unrelated Argoverse 2 packages.
+  - `data/kitti`: replaced OpenPCDet's template KITTI directory with a symlink to `/root/autodl-tmp/ASAP/data/kitti`. The original template directory is kept locally as `data/kitti_openpcdet_template`.
+

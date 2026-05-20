@@ -157,6 +157,105 @@ To run all four steps in sequence:
 bash scripts/prepare_kitti.sh
 ```
 
+## OpenPCDet backend preparation
+
+ASAP uses OpenPCDet as an external detector backend for the first KITTI PointPillars baseline. OpenPCDet is not committed into this repository. Clone it manually under `third_party/`, record its upstream commit, and remove its inner `.git` directory before using it.
+
+### 1. Manually clone OpenPCDet
+
+Run these commands yourself:
+
+```bash
+mkdir -p /root/autodl-tmp/ASAP/third_party
+git clone https://github.com/open-mmlab/OpenPCDet.git /root/autodl-tmp/ASAP/third_party/OpenPCDet
+git -C /root/autodl-tmp/ASAP/third_party/OpenPCDet log -1 --oneline
+rm -rf /root/autodl-tmp/ASAP/third_party/OpenPCDet/.git
+```
+
+After cloning, record the upstream commit and license information in `third_party/README.md`.
+
+### 2. Install OpenPCDet dependencies
+
+Use an isolated `conda` environment named `asap`. The reproducible setup is provided as a script:
+
+```bash
+bash scripts/create_asap_env.sh
+conda activate asap
+```
+
+The script creates a fresh conda environment with Python 3.9, installs `torch==2.5.1+cu124` and `torchvision==0.20.1+cu124`, the OpenPCDet Python dependencies, and `spconv-cu120`. It does not install `pcdet` itself.
+
+You can verify the environment with:
+
+```bash
+conda run -n asap python scripts/verify_openpcdet_env.py
+```
+
+After OpenPCDet has been manually cloned to `third_party/OpenPCDet`, install `pcdet` in development mode from inside the `asap` environment:
+
+```bash
+conda run -n asap env \
+  CUDA_HOME=/usr/local/cuda-12.4 \
+  TORCH_CUDA_ARCH_LIST=7.5 \
+  PATH=/usr/local/cuda-12.4/bin:/root/miniconda3/envs/asap/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+  LD_LIBRARY_PATH=/usr/local/cuda-12.4/lib64 \
+  python -m pip install --no-build-isolation -e third_party/OpenPCDet
+```
+
+Use `python -m pip` rather than bare `pip` so the install target is definitely the `asap` environment. `--no-build-isolation` is required by current `pip` because OpenPCDet's build step imports the already-installed `torch`.
+
+If the current OpenPCDet upstream imports optional Argoverse 2 code and fails with `ModuleNotFoundError: No module named 'av2'` while preparing KITTI, patch `third_party/OpenPCDet/pcdet/datasets/__init__.py` locally so `Argo2Dataset` is registered only when `av2` is installed. Record this local modification in `third_party/README.md`.
+
+If editable wheel building fails, run instead:
+
+```bash
+conda run -n asap env \
+  CUDA_HOME=/usr/local/cuda-12.4 \
+  TORCH_CUDA_ARCH_LIST=7.5 \
+  PATH=/usr/local/cuda-12.4/bin:/root/miniconda3/envs/asap/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+  LD_LIBRARY_PATH=/usr/local/cuda-12.4/lib64 \
+  python third_party/OpenPCDet/setup.py develop
+```
+
+Building OpenPCDet's CUDA operators requires a system `nvcc`. On this machine `nvcc` is at `/usr/local/cuda-12.4/bin/nvcc`; export `PATH=/usr/local/cuda-12.4/bin:$PATH` before installing if needed.
+
+### 3. Link ASAP KITTI data into OpenPCDet
+
+OpenPCDet expects `data/kitti` under its own repository. ASAP keeps the real data under `ASAP/data/kitti`, so use a symlink:
+
+```bash
+bash scripts/setup_openpcdet_backend.sh
+```
+
+This creates:
+
+```text
+/root/autodl-tmp/ASAP/third_party/OpenPCDet/data/kitti
+  -> /root/autodl-tmp/ASAP/data/kitti
+```
+
+### 4. Generate OpenPCDet KITTI info files
+
+After OpenPCDet is installed and the data symlink is ready, run:
+
+```bash
+conda run -n asap env \
+  CUDA_HOME=/usr/local/cuda-12.4 \
+  LD_LIBRARY_PATH=/root/miniconda3/envs/asap/lib/python3.9/site-packages/torch/lib:/usr/local/cuda-12.4/lib64 \
+  PYTHON=/root/miniconda3/envs/asap/bin/python \
+  bash scripts/generate_kitti_infos.sh
+```
+
+Expected generated files:
+
+```text
+data/kitti/kitti_infos_train.pkl
+data/kitti/kitti_infos_val.pkl
+data/kitti/kitti_infos_trainval.pkl
+data/kitti/kitti_dbinfos_train.pkl
+data/kitti/gt_database/
+```
+
 ## Current implementation plan
 
 1. Prepare KITTI 3D object detection data and detector baseline.
