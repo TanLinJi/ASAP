@@ -52,6 +52,111 @@ Reference papers are stored under `docs/references/` for local reading only.
 - A literature index that lists titles, venues, years, and download links is kept in `docs/references/README.md` and committed to Git.
 - When summarizing or quoting papers in our own writing, attribution is required.
 
+## KITTI data preparation
+
+ASAP uses the official KITTI 3D Object Detection dataset for the first detection benchmark. KITTI data is not included in this repository and is ignored by Git under `data/`.
+
+The expected local root is:
+
+```text
+/root/autodl-tmp/ASAP/data/kitti/
+```
+
+For a different machine, set `ASAP_ROOT`, `KITTI_ROOT`, and `DOWNLOAD_DIR` before running the scripts.
+
+### 1. Download and extract KITTI object data
+
+This downloads the four required KITTI 3D Object Detection archives and extracts them under `data/kitti/`:
+
+```bash
+bash scripts/download_kitti_object.sh
+```
+
+The script downloads:
+
+- `data_object_velodyne.zip`
+- `data_object_calib.zip`
+- `data_object_label_2.zip`
+- `data_object_image_2.zip`
+
+Expected extracted directories:
+
+```text
+data/kitti/
+├── training/
+│   ├── calib/
+│   ├── image_2/
+│   ├── label_2/
+│   └── velodyne/
+└── testing/
+    ├── calib/
+    ├── image_2/
+    └── velodyne/
+```
+
+### 2. Download KITTI ImageSets
+
+This downloads the OpenPCDet KITTI split files and generates `trainval.txt` from `train.txt + val.txt`:
+
+```bash
+bash scripts/download_kitti_imagesets.sh
+```
+
+Expected files:
+
+```text
+data/kitti/ImageSets/
+├── train.txt
+├── val.txt
+├── trainval.txt
+└── test.txt
+```
+
+### 3. Verify KITTI object data
+
+This checks the official KITTI object files:
+
+```bash
+python scripts/verify_kitti_object.py --root /root/autodl-tmp/ASAP/data/kitti
+```
+
+Expected counts:
+
+```text
+training/velodyne: 7481
+training/calib:    7481
+training/label_2:  7481
+training/image_2:  7481
+testing/velodyne:  7518
+testing/calib:     7518
+testing/image_2:   7518
+```
+
+### 4. Verify KITTI ImageSets
+
+This checks the split files and confirms `trainval = train union val`:
+
+```bash
+python scripts/verify_kitti_imagesets.py --root /root/autodl-tmp/ASAP/data/kitti
+```
+
+Expected counts:
+
+```text
+train.txt:     3712
+val.txt:       3769
+trainval.txt:  7481
+test.txt:      7518
+```
+
+### Optional one-command preparation
+
+To run all four steps in sequence:
+
+```bash
+bash scripts/prepare_kitti.sh
+```
+
 ## Current implementation plan
 
 1. Prepare KITTI 3D object detection data and detector baseline.
