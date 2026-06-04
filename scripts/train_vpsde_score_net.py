@@ -36,6 +36,9 @@ from asap.geometry import AdaptiveSPUBuilder, SPUConfig
 logger = logging.getLogger(__name__)
 
 
+LOSS_PROFILES = ("score_mse", "time_sigma2")
+
+
 def require_torch():
     try:
         import torch
@@ -85,6 +88,23 @@ def load_patch_pool(
     if not patches:
         raise RuntimeError("No patches sampled; check clean_dir and SPU settings.")
     return np.stack(patches, axis=0).astype(np.float32)
+
+
+def score_matching_loss(pred, target, sigma, profile: str):
+    """Compute a configurable denoising-score matching loss.
+
+    `score_mse` is the original Track A objective. `time_sigma2` multiplies
+    each sample by sigma_t^2 so tiny-noise timesteps do not dominate updates.
+    """
+    err = (pred - target) ** 2
+    per_sample = err.mean(dim=(1, 2))
+    if profile == "score_mse":
+        weight = 1.0
+    elif profile == "time_sigma2":
+        weight = sigma.detach() ** 2
+    else:
+        raise ValueError(f"Unknown loss profile: {profile}")
+    return (per_sample * weight).mean()
 
 
 def train(args):
@@ -149,7 +169,7 @@ def train(args):
             target = -eps / sigma[:, None, None]
 
             pred = model(xt, t)
-            loss = torch.mean((pred - target) ** 2)
+            loss = score_matching_loss(pred, target, sigma, args.loss_profile)
             opt.zero_grad(set_to_none=True)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
@@ -171,6 +191,7 @@ def train(args):
             "steps": int(steps),
             "num_features": int(args.num_features),
             "data_parallel": bool(use_data_parallel),
+            "loss_profile": str(args.loss_profile),
             "note": "Track-A starter local VP-SDE score net",
         },
     )
@@ -196,6 +217,15 @@ def main():
     parser.add_argument("--t_eps", type=float, default=1e-3)
     parser.add_argument("--t_max", type=float, default=0.20)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument(
+        "--loss_profile",
+        choices=LOSS_PROFILES,
+        default="score_mse",
+        help=(
+            "Training objective. score_mse is the original DSM objective; "
+            "time_sigma2 weights per-sample DSM by sigma_t^2."
+        ),
+    )
     parser.add_argument(
         "--num_features",
         type=int,
