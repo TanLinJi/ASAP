@@ -120,7 +120,7 @@ Legend: `done` = finished with results in file, `running` = currently executing,
 
 | ID | Target | Description | Status |
 |----|--------|-------------|--------|
-| E7.1 | VP-SDE score-net loss | Time-balanced DSM, local geometry consistency, density preservation, and paired attacked-clean fine-tuning | **planned** — start with L1 `time_sigma2` after git checkpoint. |
+| E7.1 | VP-SDE score-net loss | Time-balanced DSM, local geometry consistency, density preservation, and paired attacked-clean fine-tuning | **active** — L1 `time_sigma2` is weak positive (PointPillars 61.35/34.75, PV-RCNN 11.23/6.46); implement L2 geometry next. |
 
 ## Milestones
 

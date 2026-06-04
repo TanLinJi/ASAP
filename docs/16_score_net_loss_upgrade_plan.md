@@ -51,6 +51,12 @@ First run:
 - same training data size as Track A v1
 - same inference setting as `tstar008`
 
+Outcome on 2026-06-04:
+
+- PointPillars E2.2: **61.3504 / 34.7457**, effectively flat versus L0 **61.2567 / 34.7557**.
+- PV-RCNN E2.2: **11.2334 / 6.4569**, improving mAP over L0 **11.2328 / 6.2564** while keeping Car flat.
+- Decision: L1 is a weak positive and becomes the current E7 candidate. It validates loss-function work, but is not yet strong enough to update paper-facing main results.
+
 ### L2 — Local geometry consistency loss
 
 Problem: score matching alone does not explicitly preserve local shape descriptors used by M2 and by downstream detectors.
@@ -70,7 +76,9 @@ First run:
 
 - `loss_profile=geo`
 - start with `lambda_chamfer=0.1`, `lambda_centroid=0.05`, `lambda_cov=0.05`
-- evaluate only KITTI E2.2 on PointPillars first; continue to PV-RCNN only if PointPillars mAP is not worse than L0 by more than 0.2.
+- build on top of `time_sigma2` weighting rather than replacing it.
+- evaluate only KITTI E2.2 on PointPillars first; continue to PV-RCNN only if PointPillars mAP is not worse than L1 by more than 0.05.
+- goal: keep L1's PV-RCNN mAP gain while reducing Pedestrian/Cyclist tradeoffs.
 
 ### L3 — Density-ratio preservation loss
 
@@ -153,7 +161,7 @@ Only run PV-RCNN for variants that pass Gate B. A variant is paper-useful only i
 4. Run E2.2 purification with two T4 GPUs in tmux.
 5. Evaluate PointPillars with two T4 GPUs.
 6. Decide whether to run PV-RCNN.
-7. If L1 fails, implement L2. If L1 passes, compare L1 vs L2 before L3.
+7. L1 passed weakly; implement L2 as a time-balanced DSM + geometry consistency objective. Compare L2 against L1 before L3.
 8. Use L4 only after L1-L3 identify a stable geometry-aware base.
 
 ## Commands Template
