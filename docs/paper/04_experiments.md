@@ -1,124 +1,60 @@
 # 4. Experiments
 
-<!-- 目标长度: 1 - 1.5 栏，1 张主表 + 1 张消融表。 -->
-
 ## 4.1 Experimental setup
 
-<!--
-- 数据集分层:
-  1) KITTI: 快速复现、消融、与旧防御方法公平对比。
-  2) Waymo / nuScenes: 支撑 detector-agnostic + recent SOTA claim。
-- 检测器分层:
-  1) KITTI sanity check: PointPillars, PV-RCNN++。
-  2) Waymo modern detectors: DSVT-Voxel, VoxelNeXt, MPPNet。
-  3) nuScenes modern detectors: VoxelNeXt, TransFusion-Lidar。
-- 评测指标:
-  KITTI: 3D Average Precision (AP) on Car/Pedestrian/Cyclist.
-  Waymo: mean Average Precision / mean Average Precision weighted by Heading (mAP / mAPH).
-  nuScenes: mean Average Precision (mAP) and nuScenes Detection Score (NDS).
-- 攻击设置：至少 1 个 injection、1 个 perturbation、1 个 dropping 代表，强度统一。
--->
+We evaluate ASAP as an inference-only front-end: every detector is used with its released checkpoint and no weight modification. KITTI [@geiger2012kitti] is used for controlled ablations with PointPillars [@lang2019pointpillars] and PV-RCNN [@shi2020pvrcnn]. nuScenes [@caesar2020nuscenes] tests transfer to modern 360-degree detectors, VoxelNeXt [@chen2023voxelnext] and TransFusion-Lidar [@bai2022transfusion]. KITTI covers point injection, perturbation, and dropping; nuScenes uses accepted keyframe-only Injection and `epsilon=0.5` Perturbation attacks because OpenPCDet evaluates ten sweeps and clean historical sweeps weaken keyframe-only Dropping. KITTI reports `Car Moderate AP_R40 / Moderate mAP` over Car/Pedestrian/Cyclist; nuScenes reports `mAP / NDS`.
 
-We evaluate ASAP on a tiered set of datasets and detectors so that the same purification module is stressed both in a controlled ablation regime and against recent state-of-the-art detectors. Throughout, ASAP is **inference-only**: every detector is used as released, with its official pre-trained checkpoint and no parameter modification.
+## 4.2 Baselines and policy variants
 
-- **Datasets.** KITTI [@geiger2012kitti] is used for fast reproducibility and ablation, since it is small enough to iterate on the local CUDA 12.4 setup. The Waymo Open Dataset [@sun2020waymo] and nuScenes [@caesar2020nuscenes] are used for the main detector-agnostic evaluation, because most recent strong LiDAR detectors only report on these two benchmarks.
-- **KITTI detectors.** PointPillars and PV-RCNN serve as controlled baselines that are well understood by the community and easy to compare against prior defenses.
-- **Waymo detectors.** We pick DSVT-Voxel, VoxelNeXt, and MPPNet to span three modern design families: dynamic sparse voxel transformers, fully sparse voxel detectors, and temporal multi-frame detectors.
-- **nuScenes detectors.** We use VoxelNeXt and TransFusion-Lidar to stress ASAP on a different benchmark, a 360-degree LiDAR layout, and a transformer/query-based detection head.
-- **Attacks.** We cover the three canonical attack families on point-cloud detection: a *point-injection* attack [@cao2019adversarial; @tu2020physically], a *point-perturbation* attack [@xiang2019pointcloud], and a *point-dropping* attack [@zheng2019pointcloud], each at a unified budget per detector.
-- **Metrics.** KITTI reports 3D Average Precision (AP) on Car/Pedestrian/Cyclist; Waymo reports mean Average Precision and mean Average Precision weighted by Heading (mAP / mAPH); nuScenes reports mAP and the nuScenes Detection Score (NDS). For attack effectiveness we additionally report the **Attack Success Rate (ASR)** before and after defense, where ASR = 1 - (mAP-under-attack / mAP-clean) for the corresponding detector and dataset.
-- **Hardware.** KITTI development runs on a local 2-GPU CUDA 12.4 node; Waymo / nuScenes evaluation uses official pre-trained checkpoints from the OpenPCDet model zoo so that no detector is retrained for ASAP.
-
-## 4.2 Baselines
-
-<!--
-- No defense（原始攻击下检测）。
-- 经典统计去噪：SOR / ROR。
-- Uniform SPU diffusion (ours, no gating)：作为公平消融，证明 selective gating 是关键。
-- 可选：再加一种 published purification 作为外部对照（按字数允许补充）。
--->
-
-We compare ASAP against four baselines that together isolate the contribution of each design decision in ASAP:
-
-- **No defense.** The attacked LiDAR scan is fed directly to the detector. This lower-bound row quantifies the raw vulnerability of each detector under each attack.
-- **SOR / ROR** [@rusu2008towards]. Statistical Outlier Removal and Radius Outlier Removal applied to the *whole* scan. These training-free, detector-agnostic denoisers are the closest classical analog of ASAP and let us isolate the value of the diffusion step.
-- **Uniform SPU diffusion (ours, no M2 gating).** ASAP with the anomaly scorer disabled, i.e. the VP-SDE purifier is applied to *every* SPU regardless of the score. Comparing this baseline against full ASAP isolates the contribution of the anomaly-guided selection (M2 + threshold $\tau$).
-- **Scene-wide diffusion purifier** [@sun2023ada3diff]. A representative published diffusion-based point-cloud purifier applied to the entire scan, included for external context where checkpoints are available.
+Baselines include no defense and global SOR/ROR [@rusu2008towards]. We report **ASAP-v1** for the score-net purifier with M1/M2 gating, and **ASAP-pfilter** when the disclosed support filter is appended after score-net denoising. For recent-method context, we add a same-protocol **LiDAR-SPD-style proxy** [@lidarspd] using the reported fixed radius `r_1=0.15 m`; this is a controlled proxy, not an official reproduction. PWAVEP [@li2026pwavep] and the CCS 2025 real-time LiDAR defense [@yan2025realtime] are discussed as recent related methods, but are not placed in the result table because their released/available paths do not provide directly comparable full-scene KITTI detection outputs under our attack protocol. The pfilter row is a cascade, not a claim that diffusion alone dominates ROR.
 
 ## 4.3 Main results
 
-<!--
-- 表 1：主结果不再只放 KITTI/PointPillars，而是以 detector 为行。
-- 建议列: Dataset, Detector, Attack, No defense, Uniform SPU, ASAP, Clean upper bound。
-- KITTI 详细 Car/Pedestrian/Cyclist AP 可以放补充表或附表。
-- Waymo / nuScenes 用 mAP/mAPH/NDS 支撑 modern detector-agnostic claim。
--->
+Table 1 reports the clean upper bound, no-defense lower bound, strongest non-ASAP baseline, and ASAP-family result. Higher values are better. The clean row is only a reference; ASAP is not expected to exceed it.
 
-Table 1 reports the main detector-agnostic results. Rows are indexed by *(dataset, detector, attack family)* and columns report the clean upper bound, the no-defense lower bound, the strongest non-ASAP baseline, and full ASAP. The headline metrics are dataset-native (AP for KITTI, mAP / mAPH for Waymo, mAP / NDS for nuScenes) so that each row is directly comparable to the published numbers of the corresponding detector.
+TABLE 1 (current verified rows):
 
-*Reading the table.* Higher detection metrics are better; lower ASR is better. We highlight in bold the best per-row defense; **ASAP** is reported in the last column. The clean upper bound is the official released number under the same protocol, included only as a reference; ASAP is not expected to exceed it.
+| Dataset  | Detector            | Detector family                                | Attack       | Clean ref | No defense | Best non-ASAP baseline | **ASAP-family result** |
+|----------|---------------------|------------------------------------------------|--------------|----------:|-----------:|------------------------:|----------------:|
+| KITTI    | PointPillars        | Pillar-based one-stage                         | Injection    | 78.40 / 64.21 | 60.10 / 38.73 | 66.07 / 51.30 (ROR) | 65.71 / **52.18** |
+| KITTI    | PointPillars        | Pillar-based one-stage                         | Perturbation | 78.40 / 64.21 | 56.54 / 27.32 | 41.65 / 19.46 (ROR) | **61.26 / 34.76** |
+| KITTI    | PointPillars        | Pillar-based one-stage                         | Dropping     | 78.40 / 64.21 | 71.22 / 48.42 | 49.91 / 34.20 (ROR) | **71.22 / 48.42** |
+| KITTI    | PV-RCNN             | Voxel-point two-stage                          | Injection    | 84.36 / 69.74 | 63.16 / 48.22 | **72.77 / 57.77** (ROR) | 72.59 / 57.73 |
+| KITTI    | PV-RCNN             | Voxel-point two-stage                          | Perturbation | 84.36 / 69.74 | 3.50 / 2.45 | 1.94 / 1.17 (ROR) | **11.23 / 6.26** |
+| KITTI    | PV-RCNN             | Voxel-point two-stage                          | Dropping     | 84.36 / 69.74 | 78.61 / 57.12 | 59.05 / 43.12 (ROR) | **78.61 / 57.12** |
+| nuScenes | VoxelNeXt (0.075)   | Fully sparse voxel CNN, anchor-free            | Injection    | 60.52 / 66.64 | 21.97 / 41.87 | 53.29 / 62.66 (ROR) | 52.45 / 62.18 |
+| nuScenes | VoxelNeXt (0.075)   | Fully sparse voxel CNN, anchor-free            | Perturbation (`eps=0.5`) | 60.52 / 66.64 | 40.27 / 51.46 | 51.36 / 60.40 (ROR) | **52.27 / 61.23** (`ASAP-pfilter`) |
+| nuScenes | TransFusion-Lidar   | Sparse voxel backbone + transformer query head | Injection    | 64.57 / 69.43 | 19.13 / 39.45 | **57.29 / 65.04** (ROR) | 56.74 / 64.72 |
+| nuScenes | TransFusion-Lidar   | Sparse voxel backbone + transformer query head | Perturbation (`eps=0.5`) | 64.57 / 69.43 | 43.02 / 52.99 | 53.51 / 61.23 (ROR) | **54.40 / 61.98** (`ASAP-pfilter`) |
 
-TABLE 1 (to be filled after MS2-MS3 of the experiment plan):
+ASAP is strongest on perturbation. On KITTI PointPillars it improves the attacked row from **56.54 / 27.32** to **61.26 / 34.76**, and on KITTI PV-RCNN it improves the same attack from **3.50 / 2.45** to **11.23 / 6.26**. On nuScenes Perturbation, ASAP-pfilter improves VoxelNeXt from **40.27 / 51.46** to **52.27 / 61.23** and TransFusion-Lidar from **43.02 / 52.99** to **54.40 / 61.98**, slightly above the same global support rule used by ROR on both detectors. Injection is near ROR rather than dominant, and Dropping is handled conservatively: when evidence has already been removed, ASAP skips M3 rather than claiming reconstruction. The nuScenes Dropping attack is excluded because it fails the attack-strength gate under ten-sweep evaluation.
 
-| Dataset | Detector | Detector family | Attack | Clean (ref) | No defense | Best non-ASAP baseline | **ASAP (ours)** |
-|---------|----------|-----------------|--------|-------------|------------|------------------------|-----------------|
-| KITTI    | PointPillars       | Pillar-based one-stage             | Injection    | [XX.X] AP       | [XX.X] AP       | [XX.X] AP       | **[XX.X] AP**       |
-| KITTI    | PV-RCNN            | Voxel-point two-stage              | Injection    | [XX.X] AP       | [XX.X] AP       | [XX.X] AP       | **[XX.X] AP**       |
-| Waymo    | DSVT-Voxel         | Dynamic sparse voxel transformer   | Injection    | [XX.X]/[XX.X]   | [XX.X]/[XX.X]   | [XX.X]/[XX.X]   | **[XX.X]/[XX.X]**   |
-| Waymo    | VoxelNeXt          | Fully sparse voxel detector        | Injection    | [XX.X]/[XX.X]   | [XX.X]/[XX.X]   | [XX.X]/[XX.X]   | **[XX.X]/[XX.X]**   |
-| Waymo    | MPPNet             | Temporal multi-frame detector      | Injection    | [XX.X]/[XX.X]   | [XX.X]/[XX.X]   | [XX.X]/[XX.X]   | **[XX.X]/[XX.X]**   |
-| nuScenes | VoxelNeXt          | Fully sparse voxel detector        | Injection    | [XX.X]/[XX.X]   | [XX.X]/[XX.X]   | [XX.X]/[XX.X]   | **[XX.X]/[XX.X]**   |
-| nuScenes | TransFusion-Lidar  | Transformer/query detection head   | Injection    | [XX.X]/[XX.X]   | [XX.X]/[XX.X]   | [XX.X]/[XX.X]   | **[XX.X]/[XX.X]**   |
+## 4.4 Policy ablations
 
-Perturbation and dropping attacks follow the same row layout in the supplementary table; we expect a similar ranking trend across attack families since ASAP's anomaly score is not tied to any single attack signature.
+Table 2 keeps only ablations that affect the paper's main claims: whether selective local purification matters, whether the support branch is merely ROR, and whether the attack-aware Dropping policy avoids over-editing.
 
-## 4.4 Ablation study
+TABLE 2 (verified policy ablations):
 
-<!--
-- A1: 固定半径 vs M1 自适应半径。
-- A2: 单一异常特征 vs M2 全部 4 个特征组合。
-- A3: 全部扩散 vs M3 阈值控制选择性扩散。
-- A4: 阈值 tau 的敏感性曲线。
--->
+| Setting | Detector / attack | Result | Interpretation |
+|---------|-------------------|--------|----------------|
+| No defense | PointPillars / Perturbation | 56.54 / 27.32 | Attacked lower bound. |
+| LiDAR-SPD-style proxy | PointPillars / Perturbation | 56.58 / 26.61 | Fixed `r=0.15 m`, `tau=-1.0`; edits 64.40% of points and remains near no defense. |
+| Fixed-SPU all-unit diffusion proxy | PointPillars / Perturbation | 57.16 / 30.35 | Fixed `r=0.40 m`, `tau=-1.0`; edits 77.86% of points and remains below ASAP. |
+| Adaptive-SPU all-unit diffusion | PointPillars / Perturbation | 38.62 / 17.88 | ASAP M1 with `tau=-1.0`; edits 70.98% of points and collapses without M2 selection. |
+| **ASAP tstar008** | PointPillars / Perturbation | **61.26 / 34.76** | Adaptive SPUs plus M2 selection outperform nonselective diffusion; `t_star=0.08` gives a small positive update over Track A. |
+| LiDAR-SPD-style proxy | PV-RCNN / Perturbation | 3.16 / 2.31 | Same purified scans transferred to a two-stage detector; below no defense and ASAP Track A. |
+| **ASAP tstar008** | PV-RCNN / Perturbation | **11.23 / 6.26** | Selective editing recovers signal under the stronger PV-RCNN perturbation attack, though absolute recovery remains limited. |
+| No defense | VoxelNeXt / Perturbation | 40.27 / 51.46 | Strong accepted nuScenes perturbation budget. |
+| ASAP-v1 | VoxelNeXt / Perturbation | 41.32 / 52.74 | Score-net editing alone is insufficient under ten-sweep nuScenes evaluation. |
+| ROR / support-only | VoxelNeXt / Perturbation | 51.36 / 60.40 | Same `0.4 m / 5 neighbors` support rule as pfilter, applied to the attacked scan. |
+| **ASAP-pfilter** | VoxelNeXt / Perturbation | **52.27 / 61.23** | Score-net + support filter exceeds support-only by +0.91 mAP / +0.83 NDS. |
+| ROR / support-only | TransFusion-Lidar / Perturbation | 53.51 / 61.23 | Same support-only row transfers across detector heads. |
+| **ASAP-pfilter** | TransFusion-Lidar / Perturbation | **54.40 / 61.98** | The cascade exceeds support-only by +0.89 mAP / +0.75 NDS. |
+| Score-net policy | PointPillars / Dropping | 68.49 / 35.41 | Extra editing removes useful evidence. |
+| **Skip M3** | PointPillars / Dropping | **71.22 / 48.42** | Passing through the damaged scan is the safer conservative policy. |
 
-All ablations are run on KITTI with a single detector (PointPillars) to keep the design space tractable; each ablation isolates one module of ASAP while keeping the other two at their defaults from Section 3.
-
-- **A1 — Adaptive vs fixed SPU radius (M1).** Replace the density-adaptive radius rule of Equation (M1.1) with a single global radius $r_1$ swept over $\{0.10, 0.20, 0.30, 0.40\}$ m, keeping M2 and M3 unchanged. The expected message is that no single fixed radius matches the detection accuracy of the adaptive rule across both nearby dense surfaces and far-away sparse returns.
-- **A2 — Full anomaly scorer vs single feature (M2).** Disable three of the four features at a time and keep only $f_c$, $f_a$, $f_v$, or $f_d$. This shows whether any single feature is sufficient, and quantifies the marginal value of combining compactness, anisotropy, vMF concentration, and density ratio.
-- **A3 — Selective vs uniform diffusion (M3).** Compare full ASAP against the *Uniform SPU diffusion* baseline introduced in Section 4.2. This is the cleanest test that M2-driven gating, and not the diffusion step alone, is what preserves benign geometry.
-- **A4 — Sensitivity to the anomaly threshold $\tau$.** Sweep $\tau$ along its ROC curve from $\tau = 0$ (everything purified) to $\tau \to 1$ (nothing purified) and plot detection accuracy and ASR. We expect a wide plateau around $\tau^{\star}$ (the Youden-$J$ threshold of Section 3.4.6), which would empirically support that $\tau$ does not need per-detector tuning.
-
-TABLE 2 (to be filled after MS3):
-
-| Variant            | Module touched | KITTI 3D AP (Car) | ASR    |
-|--------------------|----------------|-------------------|--------|
-| Full ASAP          | -              | [XX.X]            | [XX.X] |
-| A1 — fixed $r_1$   | M1             | [XX.X]            | [XX.X] |
-| A2 — only $f_c$    | M2             | [XX.X]            | [XX.X] |
-| A2 — only $f_a$    | M2             | [XX.X]            | [XX.X] |
-| A2 — only $f_v$    | M2             | [XX.X]            | [XX.X] |
-| A2 — only $f_d$    | M2             | [XX.X]            | [XX.X] |
-| A3 — uniform SPU   | M3             | [XX.X]            | [XX.X] |
-| A4 — $\tau = \tau^{\star}/2$ | M2 threshold | [XX.X]   | [XX.X] |
-| A4 — $\tau = 2\tau^{\star}$  | M2 threshold | [XX.X]   | [XX.X] |
+These rows support M2 as a structure-preservation gate: nonselective diffusion either remains weak or collapses, even with the same score-net checkpoint. The LiDAR-SPD-style proxy is especially important because it uses the closest fixed spherical radius reported by a recent ICASSP defense, yet obtains **56.58 / 26.61** versus ASAP's **61.26 / 34.76** on PointPillars while editing **64.40%** of points. On PV-RCNN, the same proxy obtains only **3.16 / 2.31**, below no defense **3.50 / 2.45** and far below ASAP **11.23 / 6.26**. The pfilter rows show the support filter is the dominant nuScenes perturbation component, but score-net preconditioning adds a small detector-transferable gain over the same support rule. Two corrective ablations bound the claim. First, fixed `r=0.40` slightly exceeds the original adaptive Track A on KITTI Perturbation (**61.06 / 34.92** vs **61.04 / 34.69**) but remains close to the current `t_star=0.08` row and edits more points (**27.07%** vs **21.93%**), so M1 is a conservative locality prior, not strict AP dominance. Second, `f_d` alone nearly matches full M2 on KITTI Perturbation, so the four-feature scorer is claimed for cross-attack coverage rather than feature necessity on every attack.
 
 ## 4.5 Inference cost
 
-<!--
-- 报告：clean 推理时间 / 受扰未净化时间 / 全扩散净化时间 / ASAP 选择性净化时间。
-- 单位 ms per frame，单卡 GPU。
-- 强调 selective gating 的加速倍率。
--->
-
-We report wall-clock inference cost per frame on a single GPU, separated into (i) the detector's own forward pass on the *attacked* scan, (ii) the additional purification cost of each defense, and (iii) the resulting end-to-end latency. Costs are averaged over 500 frames of the KITTI validation split with the PointPillars detector.
-
-TABLE 3 (to be filled after MS4):
-
-| Pipeline                                   | Purification cost (ms) | Detector cost (ms) | End-to-end (ms) | Selective ratio $|C^{\star}|/|C|$ |
-|--------------------------------------------|-------------------------|--------------------|-----------------|-----------------------------------|
-| No defense                                 | 0                       | [XX.X]             | [XX.X]          | -                                 |
-| SOR / ROR                                  | [XX.X]                  | [XX.X]             | [XX.X]          | -                                 |
-| Uniform SPU diffusion                      | [XX.X]                  | [XX.X]             | [XX.X]          | 1.00                              |
-| **ASAP (selective, ours)**                 | **[XX.X]**              | [XX.X]             | **[XX.X]**      | **[X.XX]**                        |
-
-The last column reports the fraction of candidate SPUs that actually trigger M3, $|C^{\star}|/|C|$ in the notation of Algorithm 1. Because M1 + M2 are closed-form and per-SPU, the *purification cost* row of ASAP is expected to scale roughly linearly with this selective ratio, while Uniform SPU diffusion always runs M3 on all $|C|$ candidates.
+ASAP is currently a robustness prototype, not a real-time system. On nuScenes Perturbation, SOR and ROR process the validation split in 192 s and 348 s, respectively; unoptimized ASAP-pfilter runs at about **0.48 s/frame** aggregate throughput over two T4 GPUs. The M2 gate remains selective: **22.75%** of candidate SPUs are flagged, **18.87%** enter the score-net path, and **4.78%** of points are coordinate-edited before the support filter removes **16.63%**. This cost is higher than ROR, but it is detector-agnostic, requires no retraining, and is much less destructive than all-unit diffusion proxies.

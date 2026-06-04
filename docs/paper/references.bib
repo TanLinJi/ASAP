@@ -1,22 +1,5 @@
 % ASAP paper references.
-% Populate this file as citations land in the Markdown drafts.
-% Use stable BibTeX keys of the form authorYEARkeyword, e.g. lang2019pointpillars.
-%
-% Suggested categories to cover before submission:
-%   - LiDAR 3D detectors (PointPillars, PV-RCNN, CenterPoint, ...)
-%   - LiDAR adversarial attacks (injection / perturbation / dropping)
-%   - Point-cloud denoising and outlier removal (SOR / ROR, learned)
-%   - Diffusion-based point-cloud purification (PointDP, Ada3Diff)
-%   - Spherical / local-region defenses such as LiDAR-SPD
-%   - KITTI dataset and benchmark
-%
-% Example entry:
-% @article{lang2019pointpillars,
-%   title   = {PointPillars: Fast Encoders for Object Detection from Point Clouds},
-%   author  = {Lang, Alex H. and Vora, Sourabh and Caesar, Holger and Zhou, Lubing and Yang, Jiong and Beijbom, Oscar},
-%   journal = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
-%   year    = {2019}
-% }
+% Keep this file limited to sources cited by the submission-facing draft.
 
 @article{banerjee2005clustering,
   title   = {Clustering on the Unit Hypersphere using von Mises-Fisher Distributions},
@@ -41,132 +24,230 @@
   title     = {Score-Based Generative Modeling through Stochastic Differential Equations},
   author    = {Song, Yang and Sohl-Dickstein, Jascha and Kingma, Diederik P. and Kumar, Abhishek and Ermon, Stefano and Poole, Ben},
   booktitle = {International Conference on Learning Representations (ICLR)},
-  year      = {2021}
+  year      = {2021},
+  url       = {https://openreview.net/forum?id=PxTIG12RRHS}
 }
 
 @inproceedings{nie2022diffpure,
   title     = {Diffusion Models for Adversarial Purification},
-  author    = {Nie, Weili and Guo, Brandon and Huang, Yujia and Xiao, Chaowei and Vahdat, Arash and Anandkumar, Anima},
-  booktitle = {International Conference on Machine Learning (ICML)},
-  year      = {2022}
+  author    = {Nie, Weili and Guo, Brandon and Huang, Yujia and Xiao, Chaowei and Vahdat, Arash and Anandkumar, Animashree},
+  booktitle = {Proceedings of the 39th International Conference on Machine Learning},
+  series    = {Proceedings of Machine Learning Research},
+  volume    = {162},
+  pages     = {16805--16827},
+  publisher = {PMLR},
+  year      = {2022},
+  url       = {https://proceedings.mlr.press/v162/nie22a.html}
 }
-
-% =====================================================================
-% Datasets (KITTI / Waymo / nuScenes). All UNVERIFIED, please confirm
-% authors / pages / DOI from the official publications before submission.
-% =====================================================================
 
 @inproceedings{geiger2012kitti,
   title     = {Are We Ready for Autonomous Driving? The {KITTI} Vision Benchmark Suite},
   author    = {Geiger, Andreas and Lenz, Philip and Urtasun, Raquel},
   booktitle = {IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages     = {3354--3361},
+  publisher = {IEEE},
   year      = {2012},
-  note      = {UNVERIFIED placeholder}
+  doi       = {10.1109/CVPR.2012.6248074}
 }
 
 @inproceedings{sun2020waymo,
   title     = {Scalability in Perception for Autonomous Driving: {Waymo} Open Dataset},
   author    = {Sun, Pei and Kretzschmar, Henrik and Dotiwalla, Xerxes and Chouard, Aurelien and Patnaik, Vijaysai and Tsui, Paul and Guo, James and Zhou, Yin and Chai, Yuning and Caine, Benjamin and Vasudevan, Vijay and Han, Wei and Ngiam, Jiquan and Zhao, Hang and Timofeev, Aleksei and Ettinger, Scott and Krivokon, Maxim and Gao, Amy and Joshi, Aditya and Zhang, Yu and Shlens, Jonathon and Chen, Zhifeng and Anguelov, Dragomir},
-  booktitle = {IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+  booktitle = {IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages     = {2443--2451},
+  publisher = {IEEE},
   year      = {2020},
-  note      = {UNVERIFIED placeholder}
+  doi       = {10.1109/CVPR42600.2020.00252}
 }
 
 @inproceedings{caesar2020nuscenes,
   title     = {{nuScenes}: A Multimodal Dataset for Autonomous Driving},
   author    = {Caesar, Holger and Bankiti, Varun and Lang, Alex H. and Vora, Sourabh and Liong, Venice Erin and Xu, Qiang and Krishnan, Anush and Pan, Yu and Baldan, Giancarlo and Beijbom, Oscar},
-  booktitle = {IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+  booktitle = {IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages     = {11621--11631},
+  publisher = {IEEE},
   year      = {2020},
-  note      = {UNVERIFIED placeholder}
+  doi       = {10.1109/CVPR42600.2020.01164}
 }
 
-% =====================================================================
-% LiDAR adversarial attacks. UNVERIFIED, please confirm venues and pages.
-% =====================================================================
+@inproceedings{lang2019pointpillars,
+  title     = {PointPillars: Fast Encoders for Object Detection from Point Clouds},
+  author    = {Lang, Alex H. and Vora, Sourabh and Caesar, Holger and Zhou, Lubing and Yang, Jiong and Beijbom, Oscar},
+  booktitle = {IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages     = {12697--12705},
+  publisher = {IEEE},
+  year      = {2019},
+  doi       = {10.1109/CVPR.2019.01298}
+}
+
+@inproceedings{shi2020pvrcnn,
+  title     = {{PV-RCNN}: Point-Voxel Feature Set Abstraction for {3D} Object Detection},
+  author    = {Shi, Shaoshuai and Guo, Chaoxu and Jiang, Li and Wang, Zhe and Shi, Jianping and Wang, Xiaogang and Li, Hongsheng},
+  booktitle = {IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages     = {10526--10535},
+  publisher = {IEEE},
+  year      = {2020},
+  doi       = {10.1109/CVPR42600.2020.01054}
+}
+
+@inproceedings{chen2023voxelnext,
+  title     = {{VoxelNeXt}: Fully Sparse {VoxelNet} for {3D} Object Detection and Tracking},
+  author    = {Chen, Yukang and Liu, Jianhui and Zhang, Xiangyu and Qi, Xiaojuan and Jia, Jiaya},
+  booktitle = {IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages     = {21674--21683},
+  publisher = {IEEE},
+  year      = {2023}
+}
+
+@inproceedings{bai2022transfusion,
+  title     = {{TransFusion}: Robust {LiDAR-Camera} Fusion for {3D} Object Detection with Transformers},
+  author    = {Bai, Xuyang and Hu, Zeyu and Zhu, Xinge and Huang, Qingqiu and Chen, Yilun and Fu, Hongbo and Tai, Chiew-Lan},
+  booktitle = {IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages     = {1090--1099},
+  publisher = {IEEE},
+  year      = {2022},
+  doi       = {10.1109/CVPR52688.2022.00116}
+}
 
 @inproceedings{cao2019adversarial,
   title     = {Adversarial Sensor Attack on {LiDAR}-Based Perception in Autonomous Driving},
   author    = {Cao, Yulong and Xiao, Chaowei and Cyr, Benjamin and Zhou, Yimeng and Park, Won and Rampazzi, Sara and Chen, Qi Alfred and Fu, Kevin and Mao, Z. Morley},
-  booktitle = {ACM Conference on Computer and Communications Security (CCS)},
+  booktitle = {ACM SIGSAC Conference on Computer and Communications Security (CCS)},
+  pages     = {2267--2281},
+  publisher = {ACM},
   year      = {2019},
-  note      = {UNVERIFIED placeholder}
+  doi       = {10.1145/3319535.3339815}
 }
 
 @inproceedings{tu2020physically,
   title     = {Physically Realizable Adversarial Examples for {LiDAR} Object Detection},
   author    = {Tu, James and Ren, Mengye and Manivasagam, Sivabalan and Liang, Ming and Yang, Bin and Du, Richard and Cheng, Frank and Urtasun, Raquel},
-  booktitle = {IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+  booktitle = {IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages     = {13713--13722},
+  publisher = {IEEE},
   year      = {2020},
-  note      = {UNVERIFIED placeholder}
+  doi       = {10.1109/CVPR42600.2020.01373}
 }
 
 @inproceedings{xiang2019pointcloud,
   title     = {Generating {3D} Adversarial Point Clouds},
   author    = {Xiang, Chong and Qi, Charles R. and Li, Bo},
-  booktitle = {IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
-  year      = {2019},
-  note      = {UNVERIFIED placeholder}
+  booktitle = {IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages     = {9128--9136},
+  publisher = {IEEE},
+  year      = {2019}
 }
 
 @inproceedings{zheng2019pointcloud,
   title     = {{PointCloud} Saliency Maps},
   author    = {Zheng, Tianhang and Chen, Changyou and Yuan, Junsong and Li, Bo and Ren, Kui},
   booktitle = {IEEE/CVF International Conference on Computer Vision (ICCV)},
+  pages     = {1598--1606},
+  publisher = {IEEE},
   year      = {2019},
-  note      = {UNVERIFIED placeholder}
+  doi       = {10.1109/ICCV.2019.00168}
 }
 
 @inproceedings{liu2019extending,
   title     = {Extending Adversarial Attacks and Defenses to Deep {3D} Point Cloud Classifiers},
   author    = {Liu, Daniel and Yu, Ronald and Su, Hao},
   booktitle = {IEEE International Conference on Image Processing (ICIP)},
+  pages     = {2279--2283},
+  publisher = {IEEE},
   year      = {2019},
-  note      = {UNVERIFIED placeholder}
+  doi       = {10.1109/ICIP.2019.8803770}
 }
 
 @inproceedings{sun2020towards,
   title     = {Towards Robust {LiDAR}-Based Perception in Autonomous Driving: General Black-Box Adversarial Sensor Attack and Countermeasures},
   author    = {Sun, Jiachen and Cao, Yulong and Chen, Qi Alfred and Mao, Z. Morley},
-  booktitle = {USENIX Security Symposium},
+  booktitle = {29th USENIX Security Symposium (USENIX Security 20)},
+  pages     = {877--894},
+  publisher = {USENIX Association},
   year      = {2020},
-  note      = {UNVERIFIED placeholder}
+  url       = {https://www.usenix.org/conference/usenixsecurity20/presentation/sun}
 }
 
-% =====================================================================
-% Statistical denoising and local spherical defenses. UNVERIFIED.
-% =====================================================================
-
-@inproceedings{rusu2008towards,
-  title     = {Towards {3D} Point Cloud Based Object Maps for Household Environments},
-  author    = {Rusu, Radu Bogdan and Marton, Zoltan Csaba and Blodow, Nico and Dolha, Mihai and Beetz, Michael},
-  booktitle = {Robotics and Autonomous Systems},
-  year      = {2008},
-  note      = {UNVERIFIED placeholder; cite for SOR / ROR baselines as implemented in PCL}
+@inproceedings{liu2021pointguard,
+  title     = {{PointGuard}: Provably Robust {3D} Point Cloud Classification},
+  author    = {Liu, Hongbin and Jia, Jinyuan and Gong, Neil Zhenqiang},
+  booktitle = {IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages     = {6186--6195},
+  publisher = {IEEE},
+  year      = {2021},
+  doi       = {10.1109/CVPR46437.2021.00612}
 }
 
-@misc{lidarspd,
-  title  = {LiDAR-SPD: Spherical Purification Defense for LiDAR Point Clouds (placeholder)},
-  author = {{TBD}},
-  year   = {TBD},
-  note   = {UNVERIFIED placeholder for the local-spherical defense baseline; fill in once final citation is chosen.}
+@article{rusu2008towards,
+  title   = {Towards {3D} Point Cloud Based Object Maps for Household Environments},
+  author  = {Rusu, Radu Bogdan and Marton, Zoltan Csaba and Blodow, Nico and Dolha, Mihai and Beetz, Michael},
+  journal = {Robotics and Autonomous Systems},
+  volume  = {56},
+  number  = {11},
+  pages   = {927--941},
+  year    = {2008},
+  doi     = {10.1016/j.robot.2008.08.005}
 }
 
-% =====================================================================
-% Diffusion-based point-cloud purification / generation. UNVERIFIED.
-% =====================================================================
+@inproceedings{lidarspd,
+  title     = {{LiDAR-SPD}: Improving Adversarial Robustness of {3D} Object Detection via Spherical Projection and Diffusion},
+  author    = {Cai, Mumuxin and Wang, Xupeng and Sohel, Ferdous and Lei, Hang},
+  booktitle = {IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)},
+  pages     = {1--5},
+  publisher = {IEEE},
+  year      = {2025},
+  doi       = {10.1109/ICASSP49660.2025.10889720}
+}
+
+@inproceedings{yan2025realtime,
+  title     = {Towards Real-Time Defense against Object-Based {LiDAR} Attacks in Autonomous Driving},
+  author    = {Zhang, Yan and Liu, Zihao and Zhu, Yi and Miao, Chenglin},
+  booktitle = {ACM SIGSAC Conference on Computer and Communications Security (CCS)},
+  pages     = {3825--3839},
+  publisher = {ACM},
+  year      = {2025},
+  doi       = {10.1145/3719027.3765227}
+}
+
+@inproceedings{li2026pwavep,
+  title         = {{PWAVEP}: Purifying Imperceptible Adversarial Perturbations in {3D} Point Clouds via Spectral Graph Wavelets},
+  author        = {Li, Haoran and Liu, Renyang and Liu, Hongjia and Wang, Chen and Yin, Long and Xu, Jian},
+  booktitle     = {ACM Web Conference (WWW)},
+  pages         = {2893--2904},
+  year          = {2026},
+  eprint        = {2602.03333},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CV},
+  url           = {https://arxiv.org/abs/2602.03333}
+}
 
 @inproceedings{luo2021diffusion,
   title     = {Diffusion Probabilistic Models for {3D} Point Cloud Generation},
   author    = {Luo, Shitong and Hu, Wei},
-  booktitle = {IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
-  year      = {2021},
-  note      = {UNVERIFIED placeholder}
+  booktitle = {IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages     = {2837--2845},
+  publisher = {IEEE},
+  year      = {2021}
 }
 
-@article{sun2023ada3diff,
-  title   = {{Ada3Diff}: Defending against {3D} Adversarial Point Clouds via Adaptive Diffusion (placeholder)},
-  author  = {{TBD}},
-  journal = {TBD},
-  year    = {2023},
-  note    = {UNVERIFIED placeholder for the scene-wide point-cloud diffusion purifier; replace with the verified citation.}
+@inproceedings{sun2023pointdp,
+  title     = {A Critical Revisit of Adversarial Robustness in {3D} Point Cloud Recognition with Diffusion-Driven Purification},
+  author    = {Sun, Jiachen and Wang, Jiongxiao and Nie, Weili and Yu, Zhiding and Mao, Zhuoqing and Xiao, Chaowei},
+  booktitle = {Proceedings of the 40th International Conference on Machine Learning},
+  series    = {Proceedings of Machine Learning Research},
+  volume    = {202},
+  pages     = {33100--33114},
+  publisher = {PMLR},
+  year      = {2023},
+  url       = {https://proceedings.mlr.press/v202/sun23m.html}
+}
+
+@inproceedings{zhang2023ada3diff,
+  title     = {{Ada3Diff}: Defending against {3D} Adversarial Point Clouds via Adaptive Diffusion},
+  author    = {Zhang, Kui and Zhou, Hang and Zhang, Jie and Huang, Qidong and Zhang, Weiming and Yu, Nenghai},
+  booktitle = {Proceedings of the 31st ACM International Conference on Multimedia (ACM MM)},
+  pages     = {8849--8859},
+  publisher = {ACM},
+  year      = {2023},
+  doi       = {10.1145/3581783.3612018}
 }

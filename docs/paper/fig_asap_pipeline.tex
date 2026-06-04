@@ -1,0 +1,37 @@
+\begin{figure}[t]
+\centering
+\small
+\begin{tikzpicture}[
+  node distance=4.2mm,
+  block/.style={
+    draw,
+    rounded corners=1.2pt,
+    align=center,
+    minimum height=8mm,
+    text width=0.88\linewidth,
+    inner sep=3pt
+  },
+  arrow/.style={->, line width=0.45pt}
+]
+\node[block] (input) {Input LiDAR scan $P$};
+\node[block, below=of input] (m1) {M1: density-adaptive SPU construction\\
+$r_1(p)=\mathrm{clip}(\alpha d_k(p),[r_{\min},r_{\max}])$};
+\node[block, below=of m1] (m2) {M2: geometric anomaly score\\
+$s(p)=\sigma(w^\top \tilde f(p)+b)$};
+\node[block, below=of m2] (gate) {Selective gate\\
+$A=\{p:s(p)>\tau^\star\}$};
+\node[block, below=of gate] (m3) {M3: short VP-SDE purification\\
+applied only to inner points of SPUs in $A$};
+\node[block, below=of m3] (filter) {Optional support filter\\
+enabled only for sparse off-surface artifacts};
+\node[block, below=of filter] (det) {Any frozen LiDAR detector $\mathcal{D}(\hat P)$};
+\draw[arrow] (input) -- (m1);
+\draw[arrow] (m1) -- (m2);
+\draw[arrow] (m2) -- (gate);
+\draw[arrow] (gate) -- (m3);
+\draw[arrow] (m3) -- (filter);
+\draw[arrow] (filter) -- (det);
+\end{tikzpicture}
+\caption{ASAP is an inference-only front-end. It builds density-adaptive spherical purification units, scores them with detector-agnostic geometric features, purifies only high-risk local regions, and optionally applies a disclosed support filter for sparse artifacts. The downstream detector is kept frozen.}
+\label{fig:asap_pipeline}
+\end{figure}

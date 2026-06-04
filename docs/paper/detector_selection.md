@@ -2,6 +2,18 @@
 
 This note records the detector choices used to support ASAP's **detector-agnostic** claim.
 
+> **Final decision for the ICASSP submission (2026-05-21).**
+> After the Waymo blocker analysis in `docs/experiments/E0_environment/E0.5_nuscenes_data_preparation.md` §3.0 (Waymo data is gated behind a Google account + GCS access not reachable from this autodl node, and OpenPCDet does *not* distribute Waymo pretrained checkpoints), the paper drops Waymo in favor of **nuScenes** as the second dataset. The shipped detector roster is:
+>
+> | Slot | Dataset      | Detector             | Detector family                              | Experiment ID |
+> |------|--------------|----------------------|----------------------------------------------|---------------|
+> | 1    | KITTI val    | PointPillars         | Pillar-based one-stage                       | `E1.1 / E4.1` |
+> | 2    | KITTI val    | PV-RCNN              | Voxel-point two-stage                        | `E1.2 / E4.2` |
+> | 3    | nuScenes val | VoxelNeXt (0.075)    | Fully sparse voxel CNN, anchor-free          | `E1.3 / E4.3` |
+> | 4    | nuScenes val | TransFusion-Lidar    | Sparse voxel + transformer query head        | `E1.4 / E4.4` |
+>
+> The sections below are the original (2026-05-20) research record of detectors we considered, kept verbatim for traceability. Waymo and MPPNet appear in that record but are *not* in the final shipped roster above.
+
 ## Key conclusion
 
 ASAP should not claim detector-agnostic robustness based only on KITTI + PointPillars. PointPillars is a valid LiDAR 3D detector, but it is an older pillar-based one-stage baseline. A detector-agnostic defense claim needs evidence across multiple detector families and, ideally, recent strong detectors.

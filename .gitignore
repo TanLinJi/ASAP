@@ -65,3 +65,4 @@ third_party/**
 
 # Reference papers (PDFs are kept local only, not committed)
 docs/references/*.pdf
+docs/references/*Supplementary Material*/

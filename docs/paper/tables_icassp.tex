@@ -1,0 +1,69 @@
+\begin{table*}[t]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3.2pt}
+\caption{Main robustness results. KITTI cells report Car/Moderate AP$_{R40}$ / cross-class mAP. nuScenes cells report mAP / NDS. ASAP-v1 denotes the M1/M2-gated score-net purifier without the optional support filter. ASAP-pfilter denotes the explicitly disclosed score-net + support-filter cascade. nuScenes attacks edit only the current keyframe while OpenPCDet still loads clean historical sweeps; Dropping is excluded from nuScenes main rows because its keyframe-only attack-strength gate failed.}
+\label{tab:main_results}
+\begin{tabular}{llllrrrr}
+\toprule
+Dataset & Detector & Family & Attack & Clean & No defense & Best non-ASAP & ASAP family \\
+\midrule
+KITTI & PointPillars & pillar & Injection & 78.40/64.21 & 60.10/38.73 & 66.07/51.30 ROR & 65.71/\textbf{52.18} \\
+KITTI & PointPillars & pillar & Perturb. & 78.40/64.21 & 56.54/27.32 & 41.65/19.46 ROR & \textbf{61.04/34.69} \\
+KITTI & PointPillars & pillar & Dropping & 78.40/64.21 & 71.22/48.42 & 49.91/34.20 ROR & \textbf{71.22/48.42} \\
+KITTI & PV-RCNN & voxel-point & Injection & 84.36/69.74 & 63.16/48.22 & \textbf{72.77/57.77} ROR & 72.59/57.73 \\
+KITTI & PV-RCNN & voxel-point & Perturb. & 84.36/69.74 & 3.50/2.45 & 1.94/1.17 ROR & \textbf{10.96/5.98} \\
+KITTI & PV-RCNN & voxel-point & Dropping & 84.36/69.74 & 78.61/57.12 & 59.05/43.12 ROR & \textbf{78.61/57.12} \\
+nuScenes & VoxelNeXt & sparse voxel & Injection & 60.52/66.64 & 21.97/41.87 & \textbf{53.29/62.66} ROR & 52.45/62.18 \\
+nuScenes & VoxelNeXt & sparse voxel & Perturb. & 60.52/66.64 & 40.27/51.46 & 51.36/60.40 ROR & \textbf{52.27/61.23} pfilter \\
+nuScenes & TransFusion-L & query head & Injection & 64.57/69.43 & 19.13/39.45 & \textbf{57.29/65.04} ROR & 56.74/64.72 \\
+nuScenes & TransFusion-L & query head & Perturb. & 64.57/69.43 & 43.02/52.99 & 53.51/61.23 ROR & \textbf{54.40/61.98} pfilter \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{table}[t]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3.5pt}
+\caption{Policy and innovation ablations supporting the final attack-aware ASAP family. Results are reported as mAP / NDS for nuScenes and Car/Moderate AP$_{R40}$ / cross-class mAP for KITTI.}
+\label{tab:policy_ablations}
+\begin{tabular}{llrl}
+\toprule
+Setting & Detector / attack & Result & Takeaway \\
+\midrule
+No defense & PointPillars / Perturb. & 56.54/27.32 & Attacked lower bound \\
+Fixed-SPU all-unit diffusion & PointPillars / Perturb. & 57.16/30.35 & Heavy nonselective proxy \\
+Adaptive-SPU all-unit diffusion & PointPillars / Perturb. & 38.62/17.88 & Over-purification collapse \\
+ASAP Track A & PointPillars / Perturb. & \textbf{61.04/34.69} & Adaptive selective purification wins \\
+No defense & VoxelNeXt / Perturb. & 40.27/51.46 & Strong accepted budget \\
+ASAP-v1 & VoxelNeXt / Perturb. & 41.32/52.74 & Score-net alone is insufficient \\
+ROR / support-only & VoxelNeXt / Perturb. & 51.36/60.40 & Strong classical baseline \\
+ASAP-pfilter & VoxelNeXt / Perturb. & \textbf{52.27/61.23} & +0.91 mAP over support-only \\
+ROR / support-only & TransFusion-L / Perturb. & 53.51/61.23 & Transfer baseline \\
+ASAP-pfilter & TransFusion-L / Perturb. & \textbf{54.40/61.98} & +0.89 mAP over support-only \\
+Score-net policy & PointPillars / Dropping & 68.49/35.41 & Extra editing removes evidence \\
+Skip M3 & PointPillars / Dropping & \textbf{71.22/48.42} & Conservative policy is safer \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3.5pt}
+\caption{Preprocessing selectivity and throughput for representative ASAP policies. SPU and point columns are percentages. Throughput is estimated from completed two-shard T4 pipeline logs and excludes detector inference.}
+\label{tab:cost_selectivity}
+\begin{tabular}{lrrrr}
+\toprule
+Setting & Flagged SPUs & Score SPUs & Point edit/drop & ms/frame \\
+\midrule
+KITTI Injection & 13.55 & 9.71 & 1.96 / 5.02 & 529 \\
+KITTI Perturb. & 28.26 & 24.45 & 21.91 / 0.00 & 764 \\
+KITTI fixed-SPU all-unit Perturb. & 100.00 & 97.14 & 77.86 / 0.00 & 2390 \\
+KITTI adaptive-SPU all-unit Perturb. & 100.00 & 95.92 & 70.98 / 0.00 & 3623 \\
+nuScenes Injection & 21.76 & 17.76 & 4.19 / 17.74 & 483 \\
+nuScenes Perturb. pfilter & 22.75 & 18.87 & 4.78 / 16.63 & 482 \\
+\bottomrule
+\end{tabular}
+\end{table}

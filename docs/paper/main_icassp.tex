@@ -1,0 +1,109 @@
+\documentclass[conference]{IEEEtran}
+
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{cite}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+
+\title{ASAP: Adaptive Spherical Anomaly-Guided Purification Against LiDAR Point Cloud Attacks}
+
+\author{
+\IEEEauthorblockN{Anonymous Authors}
+\IEEEauthorblockA{Paper under double-blind review}
+}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+LiDAR-based 3D object detection is a core perception module for autonomous driving, yet point-cloud detectors remain vulnerable to adversarial point injection, perturbation, and dropping. Existing defenses are often detector-specific, require retraining, or denoise the whole scene and remove benign geometry together with adversarial artifacts. We propose ASAP, an Adaptive Spherical Anomaly-Guided Purification framework that protects LiDAR detectors in a detector-agnostic and inference-only manner. ASAP decomposes each scan into density-adaptive spherical purification units, scores their adversarial likelihood with lightweight geometric statistics, and applies a short score-based diffusion purifier only to high-risk units. For sparse off-surface artifacts, an explicitly labeled ASAP-pfilter variant appends a radius-support filter after score-net denoising. Experiments on KITTI and nuScenes with PointPillars, PV-RCNN, VoxelNeXt, and TransFusion-Lidar show that ASAP-family defenses substantially recover detection accuracy without changing detector weights. On nuScenes Perturbation, ASAP-pfilter improves VoxelNeXt from 40.27/51.46 to 52.27/61.23 mAP/NDS and TransFusion-Lidar from 43.02/52.99 to 54.40/61.98, exceeding the strongest ROR baseline on both detectors.
+\end{abstract}
+
+\begin{IEEEkeywords}
+LiDAR point cloud, 3D object detection, adversarial purification, diffusion model, anomaly detection.
+\end{IEEEkeywords}
+
+\section{Introduction}
+
+LiDAR-based 3D object detection is central to autonomous driving perception, supporting downstream prediction, planning, and control \cite{geiger2012kitti,sun2020waymo,caesar2020nuscenes}. Recent work shows that point-cloud detectors are vulnerable to attacks that inject malicious points \cite{cao2019adversarial,tu2020physically}, perturb existing coordinates \cite{xiang2019pointcloud}, or drop selected returns \cite{zheng2019pointcloud}. Since these attacks can transfer across detector architectures, LiDAR robustness requires defenses that are not tied to one detector training recipe.
+
+Existing defenses have practical limitations. Detector-coupled defenses such as adversarial training must be repeated for each architecture \cite{liu2019extending,sun2020towards}. Classical denoisers such as Statistical Outlier Removal (SOR) and Radius Outlier Removal (ROR) \cite{rusu2008towards} are training-free, but apply the same rule across the entire scan and can remove legitimate sparse returns. Diffusion-based purifiers are detector-agnostic \cite{nie2022diffpure,zhang2023ada3diff}, but scene-wide purification is expensive and can smooth benign geometry. LiDAR-SPD \cite{lidarspd} introduces local spherical processing, but uses fixed units and lacks an explicit anomaly gate.
+
+We propose ASAP, an Adaptive Spherical Anomaly-Guided Purification framework. ASAP decomposes a scan into density-adaptive spherical purification units (SPUs), scores each SPU with closed-form geometric statistics, and runs a short VP-SDE purifier only on high-risk units. Low-risk geometry is passed through exactly, and dropping attacks are handled conservatively when evidence has already been removed. Our contributions are:
+
+\begin{itemize}
+\item A detector-agnostic, inference-only purification front-end for LiDAR detection.
+\item A density-adaptive SPU construction that follows range-dependent LiDAR sampling.
+\item An anomaly-selective structure-preservation gate from analytic geometric features and ROC calibration.
+\item A two-dataset, four-detector evaluation showing competitive transfer, stronger-than-ROR nuScenes Perturbation recovery with the disclosed pfilter cascade, and clear limitations for dropping.
+\end{itemize}
+
+\section{Related Work}
+
+\textbf{LiDAR attacks.} Point-injection attacks place malicious returns to spoof or hide objects \cite{cao2019adversarial,tu2020physically}; point-perturbation attacks shift existing returns within a budget \cite{xiang2019pointcloud,liu2019extending}; and point-dropping attacks remove selected returns \cite{zheng2019pointcloud}. Their transferability motivates detector-agnostic defenses.
+
+\textbf{Point-cloud defenses.} Adversarial training improves robustness by retraining model weights \cite{liu2019extending,sun2020towards}, while certification-oriented approaches such as PointGuard \cite{liu2021pointguard} target point-cloud classification rather than full-scene detection. SOR and ROR \cite{rusu2008towards} are architecture-agnostic, but their global filtering rule does not distinguish malicious points from sparse benign geometry.
+
+\textbf{Diffusion purification.} Diffusion purification projects corrupted inputs back toward the clean data manifold through a short stochastic trajectory \cite{nie2022diffpure,song2021scorebased}. Point-cloud variants include generative diffusion models \cite{luo2021diffusion}, PointDP \cite{sun2023pointdp}, and Ada3Diff \cite{zhang2023ada3diff}. ASAP differs by operating locally, adaptively, and selectively, so the score network is invoked only for anomalous SPUs.
+
+\section{ASAP Framework}
+
+Let $P=\{p_i\}_{i=1}^{N}\subset\mathbb{R}^3$ be an input LiDAR scan and $\mathcal{D}$ an off-the-shelf detector. ASAP returns a purified scan $\hat P$ with the same point-cloud format, then invokes $\mathcal{D}(\hat P)$ without detector retraining.
+
+\input{fig_asap_pipeline}
+
+\subsection{Adaptive SPU Construction}
+
+For a candidate center $p$, let $d_k(p)$ be the distance to its $k$-th nearest neighbor. We define
+\begin{equation}
+r_1(p)=\mathrm{clip}\!\left(\alpha d_k(p),[r_{\min},r_{\max}]\right),\qquad
+r_2(p)=\beta r_1(p),
+\end{equation}
+where $r_1$ is the outer SPU radius and $r_2$ is the editable inner radius. Candidate centers are sampled by farthest point sampling. The full SPU is $\mathcal{S}(p)=\{q\in P:\|q-p\|_2\le r_1(p)\}$, with inner points $P_{\mathrm{in}}(p)=\{q\in P:\|q-p\|_2\le r_2(p)\}$ and annulus points $P_{\mathrm{an}}(p)=\mathcal{S}(p)\setminus P_{\mathrm{in}}(p)$. We use $\alpha=2$, $k=16$, $\beta=0.67$, $r_{\min}=0.10$m, and $r_{\max}=0.40$m.
+
+\subsection{Anomaly-Selective Structure Gate}
+
+M2 summarizes each SPU with four detector-agnostic geometric statistics: compactness $f_c=|P_{\mathrm{in}}|/V_2$, PCA anisotropy $f_a=1-\lambda_3/(\lambda_1+\lambda_2+\lambda_3)$, vMF concentration $f_v=\hat{\kappa}$ using the approximation of Banerjee et al. \cite{banerjee2005clustering}, and density ratio $f_d=(|P_{\mathrm{in}}|/V_2)/(|P_{\mathrm{an}}|/V_{\mathrm{an}}+\varepsilon)$. After standardizing each feature with clean-set statistics, ASAP computes
+\begin{equation}
+s(p)=\sigma\!\left(w_c\tilde f_c+w_a\tilde f_a+w_v\tilde f_v+w_d\tilde f_d+b\right),
+\end{equation}
+where the five parameters are fitted by logistic regression on held-out SPUs. The operating threshold is selected by Youden's index \cite{youden1950index},
+\begin{equation}
+\tau^\star=\arg\max_\tau \mathrm{TPR}(\tau)-\mathrm{FPR}(\tau).
+\end{equation}
+This gate is not merely a compute shortcut: SPUs below threshold are never edited, preserving benign local structure.
+
+\subsection{Selective Score-Based Purification}
+
+For each anomalous SPU $p$ with $s(p)>\tau^\star$, ASAP centers and rescales $X_p=\mathrm{stack}(P_{\mathrm{in}}(p))$ into $\tilde X_p=(X_p-p)/r_2(p)$, applies a short forward-then-reverse VP-SDE trajectory \cite{song2021scorebased}, and maps the result back to metric space. Overlapping edits are averaged per original point; untouched points remain exactly unchanged.
+
+For sparse off-surface artifacts, ASAP-pfilter additionally retains a point $\hat q$ only if it has at least $m_f$ neighbors within radius $r_f$. The pfilter rows are therefore a score-net plus support-filter cascade, not a pure diffusion row. We compare them directly against ROR using the same support rule on the attacked input.
+
+\section{Experiments}
+
+\subsection{Setup}
+
+KITTI \cite{geiger2012kitti} is used for controlled ablations with PointPillars \cite{lang2019pointpillars} and PV-RCNN \cite{shi2020pvrcnn}. nuScenes \cite{caesar2020nuscenes} is used for detector-transfer evaluation with VoxelNeXt \cite{chen2023voxelnext} and TransFusion-Lidar \cite{bai2022transfusion}. KITTI reports Car/Moderate AP$_{R40}$ and cross-class mAP. nuScenes reports mAP and NDS. On nuScenes, attacks edit only the current keyframe while OpenPCDet still loads clean historical sweeps; Dropping is excluded because its attack-strength gate failed under this protocol.
+
+\input{tables_icassp}
+
+\subsection{Main Results}
+
+Table~\ref{tab:main_results} shows that ASAP-family defenses recover substantial accuracy without modifying detector weights. Injection recovery is near ROR rather than uniformly above it: ROR remains slightly higher on PV-RCNN and both nuScenes Injection rows. Perturbation is the strongest setting for ASAP: on KITTI PointPillars, ASAP Track A improves cross-class mAP from 27.32 to 34.69, while ROR drops to 19.46. On nuScenes Perturbation, ASAP-pfilter exceeds ROR on both VoxelNeXt and TransFusion-Lidar. Dropping is handled conservatively by skipping M3; the paper does not claim point restoration when object evidence has already been removed.
+
+\subsection{Ablations and Cost}
+
+Table~\ref{tab:policy_ablations} isolates the main design choices. A fixed-SPU all-unit diffusion proxy reaches 57.16/30.35 on KITTI PointPillars Perturbation, below ASAP Track A at 61.04/34.69 while editing 77.86\% of points. Keeping adaptive SPUs but removing M2 selection collapses to 38.62/17.88, showing that M2 is a structure-preservation gate rather than only a runtime filter. Stricter thresholds also fail to improve the final policy: increasing $\tau$ from 0.024 to 0.036 and 0.048 reduces mAP from 34.69 to 30.21 and 28.79.
+
+Table~\ref{tab:cost_selectivity} reports preprocessing selectivity. The current prototype is slower than ROR, but it is detector-agnostic and does not require retraining. On nuScenes Perturbation pfilter, 22.75\% of candidate SPUs are flagged, 18.87\% enter the score-net path, 4.78\% of points are coordinate-edited, and the support filter removes 16.63\% of points.
+
+\section{Conclusion}
+
+ASAP is an inference-only LiDAR purification framework built from density-adaptive SPUs, an anomaly-selective structure gate, and local score-based purification with an optional support filter for sparse artifacts. Experiments across KITTI and nuScenes show detector transfer, near-ROR Injection recovery, and stronger-than-ROR nuScenes Perturbation recovery when the disclosed pfilter cascade is enabled. ASAP does not reconstruct evidence removed by strong dropping attacks; under the current keyframe-only nuScenes protocol, dropping remains outside the main robustness claim. Future work includes adaptive attacks aware of ASAP's gate, density-drop reconstruction, and extension to multi-modal detectors.
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}

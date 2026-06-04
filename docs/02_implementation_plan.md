@@ -1,6 +1,12 @@
 # ASAP implementation plan
 
-This document records the concrete implementation plan for ASAP: Adaptive Spherical Anomaly-Guided Purification Against LiDAR Point Cloud Attacks.
+This document records the concrete *engineering* plan for ASAP: Adaptive Spherical Anomaly-Guided Purification Against LiDAR Point Cloud Attacks. It covers data layout, OpenPCDet backend, code-side stages, and evaluation-table templates.
+
+> **Where to look for what.**
+> - **Per-experiment records** (one Markdown file per E0.x / E1.x / E2.x / E3.x / E4.x / E5.x / E6.x experiment, plus a master status board): `/root/autodl-tmp/ASAP/docs/experiments/` (start at `experiments/README.md`).
+> - **Paper draft** (one Markdown file per section, plus `references.bib`): `/root/autodl-tmp/ASAP/docs/paper/` (start at `paper/README.md`).
+> - **Long-form Chinese research proposal**: `/root/autodl-tmp/ASAP/docs/01_SA-SPD_proposal.html`.
+> - **This file** = engineering implementation plan only. Section 9 below sketches evaluation tables for historical context; the canonical tables now live in `paper/04_experiments.md` and in each `experiments/E4_main_results/E4.x_*.md`.
 
 ## 1. Current local status
 
@@ -152,10 +158,10 @@ tools/cfgs/kitti_models/pointpillar.yaml
 Save it under:
 
 ```text
-/root/autodl-tmp/ASAP/checkpoints/openpcdet/
+/root/autodl-tmp/ASAP/checkpoints/kitti/
 ```
 
-The checkpoint must match OpenPCDet's KITTI PointPillars config. NuScenes CenterPoint checkpoints or MMDetection3D-format checkpoints are not suitable for this first OpenPCDet KITTI baseline.
+(Layout policy: every detector checkpoint lives under `checkpoints/<dataset>/<file>.pth` — see `docs/experiments/E0_environment/E0.4_detector_checkpoints.md` §3.1.) The checkpoint must match OpenPCDet's KITTI PointPillars config. NuScenes CenterPoint checkpoints or MMDetection3D-format checkpoints are not suitable for this first OpenPCDet KITTI baseline.
 
 ### A4. Run clean PointPillars validation
 
@@ -164,7 +170,7 @@ Run from `/root/autodl-tmp/ASAP/third_party/OpenPCDet`:
 ```bash
 python tools/test.py \
   --cfg_file tools/cfgs/kitti_models/pointpillar.yaml \
-  --ckpt /root/autodl-tmp/ASAP/checkpoints/openpcdet/<kitti_pointpillar_checkpoint>.pth \
+  --ckpt /root/autodl-tmp/ASAP/checkpoints/kitti/<kitti_pointpillar_checkpoint>.pth \
   --batch_size 4
 ```
 
