@@ -36,7 +36,7 @@ from asap.geometry import AdaptiveSPUBuilder, SPUConfig
 logger = logging.getLogger(__name__)
 
 
-LOSS_PROFILES = ("score_mse", "time_sigma2", "geo")
+LOSS_PROFILES = ("score_mse", "time_sigma2", "geo", "density")
 
 
 def require_torch():
@@ -93,15 +93,15 @@ def load_patch_pool(
 def score_matching_loss(pred, target, sigma, profile: str):
     """Compute a configurable denoising-score matching loss.
 
-    `score_mse` is the original Track A objective. `time_sigma2` and `geo`
-    multiply each sample by sigma_t^2 so tiny-noise timesteps do not dominate
-    updates. The `geo` profile adds auxiliary terms outside this function.
+    `score_mse` is the original Track A objective. `time_sigma2`, `geo`,
+    and `density` multiply each sample by sigma_t^2 so tiny-noise timesteps
+    do not dominate updates. Auxiliary terms are added outside this function.
     """
     err = (pred - target) ** 2
     per_sample = err.mean(dim=(1, 2))
     if profile == "score_mse":
         weight = 1.0
-    elif profile in {"time_sigma2", "geo"}:
+    elif profile in {"time_sigma2", "geo", "density"}:
         weight = sigma.detach() ** 2
     else:
         raise ValueError(f"Unknown loss profile: {profile}")
@@ -144,6 +144,23 @@ def geometry_consistency_loss(x_hat, x0, lambda_chamfer: float, lambda_centroid:
         "cov": cov.detach(),
         "geo": total.detach(),
     }
+
+
+def density_spacing_loss(x_hat, x0, density_k: int):
+    """Preserve local kNN spacing without pointwise reconstruction pressure."""
+    torch = require_torch()
+    n = int(x0.shape[1])
+    if n <= 1:
+        return x0.new_zeros(())
+    k = max(1, min(int(density_k), n - 1))
+
+    def mean_knn_distance(x):
+        dist = torch.cdist(x.float(), x.float())
+        eye = torch.eye(n, device=x.device, dtype=torch.bool)[None, :, :]
+        dist = dist.masked_fill(eye, float("inf"))
+        return dist.topk(k, largest=False, dim=2).values.mean(dim=2)
+
+    return (mean_knn_distance(x_hat) - mean_knn_distance(x0)).abs().mean()
 
 
 def train(args):
@@ -200,6 +217,7 @@ def train(args):
         chamfer_total = 0.0
         centroid_total = 0.0
         cov_total = 0.0
+        density_total = 0.0
         count = 0
         for start in range(0, n, args.batch_size):
             idx = perm[start : start + args.batch_size]
@@ -223,9 +241,22 @@ def train(args):
                     lambda_centroid=args.lambda_centroid,
                     lambda_cov=args.lambda_cov,
                 )
+                density_loss = x0.new_zeros(())
+                loss = dsm_loss + geo_loss
+            elif args.loss_profile == "density":
+                x_hat = (xt + (sigma[:, None, None] ** 2) * pred) / torch.sqrt(abar)[:, None, None]
+                density_loss = density_spacing_loss(x_hat, x0, args.density_k)
+                geo_loss = args.lambda_density * density_loss
+                geo_parts = {
+                    "chamfer": x0.new_zeros(()),
+                    "centroid": x0.new_zeros(()),
+                    "cov": x0.new_zeros(()),
+                    "geo": geo_loss.detach(),
+                }
                 loss = dsm_loss + geo_loss
             else:
                 geo_loss = x0.new_zeros(())
+                density_loss = geo_loss
                 geo_parts = {
                     "chamfer": geo_loss,
                     "centroid": geo_loss,
@@ -244,10 +275,11 @@ def train(args):
             chamfer_total += float(geo_parts["chamfer"].cpu()) * b
             centroid_total += float(geo_parts["centroid"].cpu()) * b
             cov_total += float(geo_parts["cov"].cpu()) * b
+            density_total += float(density_loss.detach().cpu()) * b
             count += b
             steps += 1
         logger.info(
-            "epoch %d/%d loss=%.6f dsm=%.6f geo=%.6f chamfer=%.6f centroid=%.6f cov=%.6f",
+            "epoch %d/%d loss=%.6f dsm=%.6f geo=%.6f chamfer=%.6f centroid=%.6f cov=%.6f density=%.6f",
             epoch + 1,
             args.epochs,
             total / max(count, 1),
@@ -256,6 +288,7 @@ def train(args):
             chamfer_total / max(count, 1),
             centroid_total / max(count, 1),
             cov_total / max(count, 1),
+            density_total / max(count, 1),
         )
 
     save_score_net_checkpoint(
@@ -273,7 +306,8 @@ def train(args):
             "lambda_chamfer": float(args.lambda_chamfer),
             "lambda_centroid": float(args.lambda_centroid),
             "lambda_cov": float(args.lambda_cov),
-            "lambda_density": 0.0,
+            "lambda_density": float(args.lambda_density),
+            "density_k": int(args.density_k),
             "pair_fraction": 0.0,
             "note": "Track-A starter local VP-SDE score net",
         },
@@ -307,7 +341,8 @@ def main():
         help=(
             "Training objective. score_mse is the original DSM objective; "
             "time_sigma2 weights per-sample DSM by sigma_t^2; "
-            "geo adds geometry consistency on top of time_sigma2."
+            "geo adds geometry consistency on top of time_sigma2; "
+            "density adds kNN spacing preservation on top of time_sigma2."
         ),
     )
     parser.add_argument(
@@ -327,6 +362,18 @@ def main():
         type=float,
         default=0.05,
         help="L2 geo profile weight for local patch covariance preservation.",
+    )
+    parser.add_argument(
+        "--lambda_density",
+        type=float,
+        default=0.03,
+        help="L3 density profile weight for local kNN spacing preservation.",
+    )
+    parser.add_argument(
+        "--density_k",
+        type=int,
+        default=8,
+        help="Number of nearest neighbors used by the L3 density profile.",
     )
     parser.add_argument(
         "--num_features",

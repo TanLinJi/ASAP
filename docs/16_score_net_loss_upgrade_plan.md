@@ -109,6 +109,13 @@ First run:
 - no Chamfer/centroid/covariance by default
 - evaluate against L1, not L2. Promote only if PointPillars mAP is within `-0.05` of **34.7457** and at least one sparse class improves.
 
+Implementation status on 2026-06-05:
+
+- `loss_profile=density` is implemented in `scripts/train_vpsde_score_net.py`.
+- CPU smoke passed on 4 KITTI patches with total loss **1.014510**, DSM **1.004591**, weighted density **0.009919**, and raw density **0.330648**.
+- Checkpoint metadata records `loss_profile: density`, `lambda_density: 0.03`, and `density_k: 8`.
+- Next action: run the full two-T4 L3 training with the same 256-frame / 16384-patch budget as L1 and L2.
+
 ### L4 — Attack-aware paired denoising loss
 
 Problem: training only on clean noised patches does not expose the score-net to actual adversarial perturbation patterns.
