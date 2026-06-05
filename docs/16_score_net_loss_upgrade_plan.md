@@ -114,7 +114,8 @@ Implementation status on 2026-06-05:
 - `loss_profile=density` is implemented in `scripts/train_vpsde_score_net.py`.
 - CPU smoke passed on 4 KITTI patches with total loss **1.014510**, DSM **1.004591**, weighted density **0.009919**, and raw density **0.330648**.
 - Checkpoint metadata records `loss_profile: density`, `lambda_density: 0.03`, and `density_k: 8`.
-- Next action: run the full two-T4 L3 training with the same 256-frame / 16384-patch budget as L1 and L2.
+- Full two-T4 training completed on the same 256-frame / 16384-patch budget as L1 and L2. Final loss is **0.371031** with DSM **0.368540** and weighted density **0.002491**.
+- Next action: purify KITTI E2.2 Perturbation with `checkpoints/kitti/asap_score_net_loss_l3_density.pth`.
 
 ### L4 — Attack-aware paired denoising loss
 
