@@ -80,6 +80,13 @@ First run:
 - evaluate only KITTI E2.2 on PointPillars first; continue to PV-RCNN only if PointPillars mAP is not worse than L1 by more than 0.05.
 - goal: keep L1's PV-RCNN mAP gain while reducing Pedestrian/Cyclist tradeoffs.
 
+Implementation status on 2026-06-05:
+
+- `loss_profile=geo` is implemented in `scripts/train_vpsde_score_net.py`.
+- CPU smoke passed on 4 KITTI patches with total loss **1.085147**, DSM **1.013108**, and geometry **0.072038**.
+- Checkpoint metadata records `loss_profile`, `lambda_chamfer`, `lambda_centroid`, `lambda_cov`, `lambda_density`, and `pair_fraction`.
+- Next action: run the full two-T4 L2 training with the same 256-frame / 16384-patch budget as L1.
+
 ### L3 — Density-ratio preservation loss
 
 Problem: E5.2 showed density ratio is the dominant perturbation cue. A score-net that changes local density too freely can help Car AP while hurting sparse classes.
@@ -179,6 +186,22 @@ tmux new-session -d -s asap_loss_l1_train_$(date +%Y%m%d_%H%M%S) \
      --batch_size 128 --device cuda --data_parallel \
      --loss_profile time_sigma2 \
    > outputs/loss_upgrade/l1_train.log 2>&1"
+```
+
+L2 geometry training:
+
+```bash
+tmux new-session -d -s asap_loss_l2_train_$(date +%Y%m%d_%H%M%S) \
+  "cd /root/autodl-tmp/ASAP && \
+   CUDA_VISIBLE_DEVICES=0,1 PYTHONPATH=src \
+   /root/miniconda3/envs/asap/bin/python scripts/train_vpsde_score_net.py \
+     --clean_dir data/kitti/training/velodyne \
+     --out_ckpt checkpoints/kitti/asap_score_net_loss_l2_geo.pth \
+     --max_frames 256 --patches_per_frame 64 --epochs 20 \
+     --batch_size 128 --device cuda --data_parallel \
+     --loss_profile geo \
+     --lambda_chamfer 0.1 --lambda_centroid 0.05 --lambda_cov 0.05 \
+   > outputs/loss_upgrade/l2_train.log 2>&1"
 ```
 
 Purification:

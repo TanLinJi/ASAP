@@ -36,7 +36,7 @@ from asap.geometry import AdaptiveSPUBuilder, SPUConfig
 logger = logging.getLogger(__name__)
 
 
-LOSS_PROFILES = ("score_mse", "time_sigma2")
+LOSS_PROFILES = ("score_mse", "time_sigma2", "geo")
 
 
 def require_torch():
@@ -93,18 +93,57 @@ def load_patch_pool(
 def score_matching_loss(pred, target, sigma, profile: str):
     """Compute a configurable denoising-score matching loss.
 
-    `score_mse` is the original Track A objective. `time_sigma2` multiplies
-    each sample by sigma_t^2 so tiny-noise timesteps do not dominate updates.
+    `score_mse` is the original Track A objective. `time_sigma2` and `geo`
+    multiply each sample by sigma_t^2 so tiny-noise timesteps do not dominate
+    updates. The `geo` profile adds auxiliary terms outside this function.
     """
     err = (pred - target) ** 2
     per_sample = err.mean(dim=(1, 2))
     if profile == "score_mse":
         weight = 1.0
-    elif profile == "time_sigma2":
+    elif profile in {"time_sigma2", "geo"}:
         weight = sigma.detach() ** 2
     else:
         raise ValueError(f"Unknown loss profile: {profile}")
     return (per_sample * weight).mean()
+
+
+def patch_covariance(x):
+    """Return per-patch 3D covariance matrices for [B, N, 3] patches."""
+    centered = x - x.mean(dim=1, keepdim=True)
+    denom = max(int(x.shape[1]) - 1, 1)
+    return centered.transpose(1, 2).matmul(centered) / denom
+
+
+def geometry_consistency_loss(x_hat, x0, lambda_chamfer: float, lambda_centroid: float, lambda_cov: float):
+    """Preserve local patch shape after the one-step Tweedie estimate."""
+    zero = x0.new_zeros(())
+
+    if lambda_chamfer:
+        torch = require_torch()
+        dist = torch.cdist(x_hat.float(), x0.float())
+        chamfer = dist.min(dim=2).values.mean(dim=1) + dist.min(dim=1).values.mean(dim=1)
+        chamfer = chamfer.mean()
+    else:
+        chamfer = zero
+
+    if lambda_centroid:
+        centroid = ((x_hat.mean(dim=1) - x0.mean(dim=1)) ** 2).mean()
+    else:
+        centroid = zero
+
+    if lambda_cov:
+        cov = ((patch_covariance(x_hat) - patch_covariance(x0)) ** 2).mean()
+    else:
+        cov = zero
+
+    total = lambda_chamfer * chamfer + lambda_centroid * centroid + lambda_cov * cov
+    return total, {
+        "chamfer": chamfer.detach(),
+        "centroid": centroid.detach(),
+        "cov": cov.detach(),
+        "geo": total.detach(),
+    }
 
 
 def train(args):
@@ -156,6 +195,11 @@ def train(args):
     for epoch in range(args.epochs):
         perm = torch.randperm(n, generator=rng)
         total = 0.0
+        dsm_total = 0.0
+        geo_total = 0.0
+        chamfer_total = 0.0
+        centroid_total = 0.0
+        cov_total = 0.0
         count = 0
         for start in range(0, n, args.batch_size):
             idx = perm[start : start + args.batch_size]
@@ -169,16 +213,50 @@ def train(args):
             target = -eps / sigma[:, None, None]
 
             pred = model(xt, t)
-            loss = score_matching_loss(pred, target, sigma, args.loss_profile)
+            dsm_loss = score_matching_loss(pred, target, sigma, args.loss_profile)
+            if args.loss_profile == "geo":
+                x_hat = (xt + (sigma[:, None, None] ** 2) * pred) / torch.sqrt(abar)[:, None, None]
+                geo_loss, geo_parts = geometry_consistency_loss(
+                    x_hat,
+                    x0,
+                    lambda_chamfer=args.lambda_chamfer,
+                    lambda_centroid=args.lambda_centroid,
+                    lambda_cov=args.lambda_cov,
+                )
+                loss = dsm_loss + geo_loss
+            else:
+                geo_loss = x0.new_zeros(())
+                geo_parts = {
+                    "chamfer": geo_loss,
+                    "centroid": geo_loss,
+                    "cov": geo_loss,
+                    "geo": geo_loss,
+                }
+                loss = dsm_loss
             opt.zero_grad(set_to_none=True)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
             opt.step()
 
             total += float(loss.detach().cpu()) * b
+            dsm_total += float(dsm_loss.detach().cpu()) * b
+            geo_total += float(geo_loss.detach().cpu()) * b
+            chamfer_total += float(geo_parts["chamfer"].cpu()) * b
+            centroid_total += float(geo_parts["centroid"].cpu()) * b
+            cov_total += float(geo_parts["cov"].cpu()) * b
             count += b
             steps += 1
-        logger.info("epoch %d/%d loss=%.6f", epoch + 1, args.epochs, total / max(count, 1))
+        logger.info(
+            "epoch %d/%d loss=%.6f dsm=%.6f geo=%.6f chamfer=%.6f centroid=%.6f cov=%.6f",
+            epoch + 1,
+            args.epochs,
+            total / max(count, 1),
+            dsm_total / max(count, 1),
+            geo_total / max(count, 1),
+            chamfer_total / max(count, 1),
+            centroid_total / max(count, 1),
+            cov_total / max(count, 1),
+        )
 
     save_score_net_checkpoint(
         args.out_ckpt,
@@ -192,6 +270,11 @@ def train(args):
             "num_features": int(args.num_features),
             "data_parallel": bool(use_data_parallel),
             "loss_profile": str(args.loss_profile),
+            "lambda_chamfer": float(args.lambda_chamfer),
+            "lambda_centroid": float(args.lambda_centroid),
+            "lambda_cov": float(args.lambda_cov),
+            "lambda_density": 0.0,
+            "pair_fraction": 0.0,
             "note": "Track-A starter local VP-SDE score net",
         },
     )
@@ -223,8 +306,27 @@ def main():
         default="score_mse",
         help=(
             "Training objective. score_mse is the original DSM objective; "
-            "time_sigma2 weights per-sample DSM by sigma_t^2."
+            "time_sigma2 weights per-sample DSM by sigma_t^2; "
+            "geo adds geometry consistency on top of time_sigma2."
         ),
+    )
+    parser.add_argument(
+        "--lambda_chamfer",
+        type=float,
+        default=0.1,
+        help="L2 geo profile weight for symmetric Chamfer patch reconstruction.",
+    )
+    parser.add_argument(
+        "--lambda_centroid",
+        type=float,
+        default=0.05,
+        help="L2 geo profile weight for local patch centroid preservation.",
+    )
+    parser.add_argument(
+        "--lambda_cov",
+        type=float,
+        default=0.05,
+        help="L2 geo profile weight for local patch covariance preservation.",
     )
     parser.add_argument(
         "--num_features",
