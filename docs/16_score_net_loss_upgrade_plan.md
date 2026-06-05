@@ -86,11 +86,12 @@ Implementation status on 2026-06-05:
 - CPU smoke passed on 4 KITTI patches with total loss **1.085147**, DSM **1.013108**, and geometry **0.072038**.
 - Checkpoint metadata records `loss_profile`, `lambda_chamfer`, `lambda_centroid`, `lambda_cov`, `lambda_density`, and `pair_fraction`.
 - Full two-T4 training completed on the same 256-frame / 16384-patch budget as L1. Final loss is **0.402276** with DSM **0.373164** and geometry **0.029112**.
-- Next action: purify KITTI E2.2 Perturbation with `checkpoints/kitti/asap_score_net_loss_l2_geo.pth`.
+- KITTI E2.2 purification completed, but the PointPillars gate failed: **61.2623 / 34.5159** versus L1 **61.3504 / 34.7457**.
+- Decision: stop L2 before PV-RCNN. The Chamfer-heavy geometry term appears too restrictive for detector-useful sparse-class geometry.
 
-### L3 — Density-ratio preservation loss
+### L3 — Density-only spacing preservation loss
 
-Problem: E5.2 showed density ratio is the dominant perturbation cue. A score-net that changes local density too freely can help Car AP while hurting sparse classes.
+Problem: E5.2 showed density ratio is the dominant perturbation cue, but L2 shows that pointwise Chamfer reconstruction can over-constrain the score field. The next loss should preserve local spacing without forcing a one-to-one patch reconstruction.
 
 Approximate local density preservation in normalized patches:
 
@@ -98,13 +99,15 @@ Approximate local density preservation in normalized patches:
 L_density = ||knn_dist_k(x_hat) - knn_dist_k(x_0)||_1
 ```
 
-Use k in `{4, 8}`. This avoids differentiating through the full M1/M2 scorer while still encouraging local point spacing to stay detector-useful.
+Use k in `{4, 8}` and average the neighbor distances. This avoids differentiating through the full M1/M2 scorer while encouraging local point spacing to stay detector-useful.
 
 First run:
 
-- `loss_profile=geo_density`
-- add `lambda_density=0.05`
-- evaluate against L2. Promote only if Pedestrian/Cyclist mAP do not regress.
+- `loss_profile=density`
+- `lambda_density=0.03`
+- `density_k=8`
+- no Chamfer/centroid/covariance by default
+- evaluate against L1, not L2. Promote only if PointPillars mAP is within `-0.05` of **34.7457** and at least one sparse class improves.
 
 ### L4 — Attack-aware paired denoising loss
 
@@ -170,7 +173,8 @@ Only run PV-RCNN for variants that pass Gate B. A variant is paper-useful only i
 5. Evaluate PointPillars with two T4 GPUs.
 6. Decide whether to run PV-RCNN.
 7. L1 passed weakly; implement L2 as a time-balanced DSM + geometry consistency objective. Compare L2 against L1 before L3.
-8. Use L4 only after L1-L3 identify a stable geometry-aware base.
+8. L2 failed PointPillars gate; implement L3 as density-only spacing preservation and compare against L1.
+9. Use L4 only after L1-L3 identify a stable loss base.
 
 ## Commands Template
 
@@ -203,6 +207,22 @@ tmux new-session -d -s asap_loss_l2_train_$(date +%Y%m%d_%H%M%S) \
      --loss_profile geo \
      --lambda_chamfer 0.1 --lambda_centroid 0.05 --lambda_cov 0.05 \
    > outputs/loss_upgrade/l2_train.log 2>&1"
+```
+
+L3 density-only training:
+
+```bash
+tmux new-session -d -s asap_loss_l3_train_$(date +%Y%m%d_%H%M%S) \
+  "cd /root/autodl-tmp/ASAP && \
+   CUDA_VISIBLE_DEVICES=0,1 PYTHONPATH=src \
+   /root/miniconda3/envs/asap/bin/python scripts/train_vpsde_score_net.py \
+     --clean_dir data/kitti/training/velodyne \
+     --out_ckpt checkpoints/kitti/asap_score_net_loss_l3_density.pth \
+     --max_frames 256 --patches_per_frame 64 --epochs 20 \
+     --batch_size 128 --device cuda --data_parallel \
+     --loss_profile density \
+     --lambda_density 0.03 --density_k 8 \
+   > outputs/loss_upgrade/l3_train.log 2>&1"
 ```
 
 Purification:
