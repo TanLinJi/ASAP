@@ -85,7 +85,8 @@ Implementation status on 2026-06-05:
 - `loss_profile=geo` is implemented in `scripts/train_vpsde_score_net.py`.
 - CPU smoke passed on 4 KITTI patches with total loss **1.085147**, DSM **1.013108**, and geometry **0.072038**.
 - Checkpoint metadata records `loss_profile`, `lambda_chamfer`, `lambda_centroid`, `lambda_cov`, `lambda_density`, and `pair_fraction`.
-- Next action: run the full two-T4 L2 training with the same 256-frame / 16384-patch budget as L1.
+- Full two-T4 training completed on the same 256-frame / 16384-patch budget as L1. Final loss is **0.402276** with DSM **0.373164** and geometry **0.029112**.
+- Next action: purify KITTI E2.2 Perturbation with `checkpoints/kitti/asap_score_net_loss_l2_geo.pth`.
 
 ### L3 — Density-ratio preservation loss
 
