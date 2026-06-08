@@ -21,8 +21,8 @@
 |----------|----|--------|--------|------|
 | P0 | L3 `density` GPU1-only purification | done | Restarted KITTI E2.2 purification using only GPU 1; old dual-GPU partial output discarded | Produced 3769 frames and 3769 meta rows |
 | P0 | L3 PointPillars gate | failed | Evaluated `outputs/asap_loss_l3_density/kitti/E2.2_perturbation` with PointPillars on GPU 1 | Failed: 61.1388 / 34.3561 |
-| P0 | L1b `anchor085` purification | active | Purify KITTI E2.2 with L1 checkpoint, `score_anchor_blend=0.85`, `t_star=0.08`, GPU 1 only | Produce 3769 frames and 3769 meta rows |
-| P0 | L1b `anchor085` PointPillars gate | pending | Evaluate L1b purified split with PointPillars on GPU 1 | Pass if mAP >= 34.7457 or sparse-class AP recovers with mAP within -0.05 |
+| P0 | L1b `anchor085` purification | done | Purified KITTI E2.2 with L1 checkpoint, `score_anchor_blend=0.85`, `t_star=0.08`, GPU 1 only | Produced 3769 frames and 3769 meta rows |
+| P0 | L1b `anchor085` PointPillars gate | active | Evaluate L1b purified split with PointPillars on GPU 1 | Pass if mAP >= 34.7457 or sparse-class AP recovers with mAP within -0.05 |
 | P1 | L1b PV-RCNN confirmation | conditional | Run only if PointPillars gate passes | Improve PV-RCNN mAP over 6.4569, or improve Pedestrian while keeping mAP near L1 |
 | P2 | L1c `step07` inference check | candidate | If L1b fails, purify with L1 checkpoint, `score_step_size=0.7`, anchor blend 0.75 | Test whether smaller score displacement protects sparse classes |
 | P3 | L3b low-weight density | downgraded | Train `density` with `lambda_density=0.01` only if inference-side checks also fail | Current L3 failed by large mAP drop, so do not prioritize more density training |
@@ -75,6 +75,15 @@
 - Plan correction: stop stacking loss functions for now. Move to inference-side conservative updates using the L1 checkpoint:
   - next active candidate: `L1b_anchor085`, increasing `score_anchor_blend` from 0.75 to 0.85;
   - backup candidate: `L1c_step07`, reducing `score_step_size` from 1.0 to 0.7.
+
+### L1b `anchor085` GPU1-only purification
+
+- tmux session: `asap_l1b_anchor085_e22_purify_gpu1_20260608_230520`.
+- Output root: `outputs/asap_l1b_anchor085/kitti/E2.2_perturbation/`.
+- Settings: L1 checkpoint, `score_anchor_blend=0.85`, `t_star=0.08`, `GPUS=1`, `CUDA_VISIBLE_DEVICES=1`.
+- Result: **3769 / 3769** purified frames and **3769** metadata rows.
+- Metadata ratios: **27.78%** flagged SPUs, **23.71%** score-net SPUs, **21.93%** edited points, no support-filter drops.
+- Status: purification succeeded; PointPillars gate is active.
 
 ## Next Candidate Design Rules
 
