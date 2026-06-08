@@ -20,10 +20,12 @@
 | Priority | ID | Status | Action | Gate |
 |----------|----|--------|--------|------|
 | P0 | L3 `density` GPU1-only purification | done | Restarted KITTI E2.2 purification using only GPU 1; old dual-GPU partial output discarded | Produced 3769 frames and 3769 meta rows |
-| P0 | L3 PointPillars gate | active | Evaluate `outputs/asap_loss_l3_density/kitti/E2.2_perturbation` with PointPillars on GPU 1 | Pass if mAP >= 34.6957 and at least one sparse class improves, or if mAP improves over L1 |
-| P1 | L3 PV-RCNN confirmation | conditional | Run only if PointPillars gate passes | Improve PV-RCNN mAP over 6.4569, or improve Pedestrian while keeping mAP near L1 |
-| P2 | L3b low-weight density | candidate | If L3 fails by small mAP drop, train `density` with `lambda_density=0.01` | Test whether current density weight is still too restrictive |
-| P2 | L1+inference micro-check | candidate | If L3 fails, run a small inference-only check around L1 with unchanged training | Avoid adding more loss complexity if training objectives saturate |
+| P0 | L3 PointPillars gate | failed | Evaluated `outputs/asap_loss_l3_density/kitti/E2.2_perturbation` with PointPillars on GPU 1 | Failed: 61.1388 / 34.3561 |
+| P0 | L1b `anchor085` purification | active | Purify KITTI E2.2 with L1 checkpoint, `score_anchor_blend=0.85`, `t_star=0.08`, GPU 1 only | Produce 3769 frames and 3769 meta rows |
+| P0 | L1b `anchor085` PointPillars gate | pending | Evaluate L1b purified split with PointPillars on GPU 1 | Pass if mAP >= 34.7457 or sparse-class AP recovers with mAP within -0.05 |
+| P1 | L1b PV-RCNN confirmation | conditional | Run only if PointPillars gate passes | Improve PV-RCNN mAP over 6.4569, or improve Pedestrian while keeping mAP near L1 |
+| P2 | L1c `step07` inference check | candidate | If L1b fails, purify with L1 checkpoint, `score_step_size=0.7`, anchor blend 0.75 | Test whether smaller score displacement protects sparse classes |
+| P3 | L3b low-weight density | downgraded | Train `density` with `lambda_density=0.01` only if inference-side checks also fail | Current L3 failed by large mAP drop, so do not prioritize more density training |
 | P3 | Paired fine-tune | deferred | Fine-tune from L1/L3 only after a stable loss base exists | Avoid detector-aware claims until clean evidence exists |
 
 ## Failure Log
@@ -61,6 +63,18 @@
 - Result: **3769 / 3769** purified frames and **3769** metadata rows.
 - Metadata ratios: **27.78%** flagged SPUs, **23.71%** score-net SPUs, **21.93%** edited points, no support-filter drops.
 - Status: purification succeeded; PointPillars gate is active.
+
+## Latest Failure Analysis
+
+### L3 `density` PointPillars gate
+
+- Result: PointPillars **61.1388 / 34.3561**.
+- Comparison to L1: Car **-0.2116**, mAP **-0.3896**, Pedestrian **-0.5449**, Cyclist **-0.4123**.
+- Decision: failed gate; PV-RCNN not run.
+- Interpretation: after L2 and L3 both reduced mAP, auxiliary training losses are likely preserving proxy geometry while degrading detector-useful perturbation recovery.
+- Plan correction: stop stacking loss functions for now. Move to inference-side conservative updates using the L1 checkpoint:
+  - next active candidate: `L1b_anchor085`, increasing `score_anchor_blend` from 0.75 to 0.85;
+  - backup candidate: `L1c_step07`, reducing `score_step_size` from 1.0 to 0.7.
 
 ## Next Candidate Design Rules
 
