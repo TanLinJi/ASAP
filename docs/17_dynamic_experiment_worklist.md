@@ -19,8 +19,8 @@
 
 | Priority | ID | Status | Action | Gate |
 |----------|----|--------|--------|------|
-| P0 | L3 `density` GPU1-only purification | active | Restart KITTI E2.2 purification using only GPU 1; discard old dual-GPU partial output | Produce 3769 frames and 3769 meta rows |
-| P0 | L3 PointPillars gate | pending | Evaluate `outputs/asap_loss_l3_density/kitti/E2.2_perturbation` with PointPillars on GPU 1 | Pass if mAP >= 34.6957 and at least one sparse class improves, or if mAP improves over L1 |
+| P0 | L3 `density` GPU1-only purification | done | Restarted KITTI E2.2 purification using only GPU 1; old dual-GPU partial output discarded | Produced 3769 frames and 3769 meta rows |
+| P0 | L3 PointPillars gate | active | Evaluate `outputs/asap_loss_l3_density/kitti/E2.2_perturbation` with PointPillars on GPU 1 | Pass if mAP >= 34.6957 and at least one sparse class improves, or if mAP improves over L1 |
 | P1 | L3 PV-RCNN confirmation | conditional | Run only if PointPillars gate passes | Improve PV-RCNN mAP over 6.4569, or improve Pedestrian while keeping mAP near L1 |
 | P2 | L3b low-weight density | candidate | If L3 fails by small mAP drop, train `density` with `lambda_density=0.01` | Test whether current density weight is still too restrictive |
 | P2 | L1+inference micro-check | candidate | If L3 fails, run a small inference-only check around L1 with unchanged training | Avoid adding more loss complexity if training objectives saturate |
@@ -52,6 +52,15 @@
 - Final loss: **0.371031**.
 - Final breakdown: DSM **0.368540**, weighted density **0.002491**, raw density **0.083023**.
 - Status: training succeeded; downstream purification/evaluation still pending.
+
+### L3 GPU1-only purification
+
+- tmux session: `asap_loss_l3_e22_purify_gpu1_20260608_215700`.
+- Output root: `outputs/asap_loss_l3_density/kitti/E2.2_perturbation/`.
+- GPU rule: `GPUS=1`, `NUM_GPUS=1`, `CUDA_VISIBLE_DEVICES=1`.
+- Result: **3769 / 3769** purified frames and **3769** metadata rows.
+- Metadata ratios: **27.78%** flagged SPUs, **23.71%** score-net SPUs, **21.93%** edited points, no support-filter drops.
+- Status: purification succeeded; PointPillars gate is active.
 
 ## Next Candidate Design Rules
 
