@@ -22,9 +22,10 @@
 | P0 | L3 `density` GPU1-only purification | done | Restarted KITTI E2.2 purification using only GPU 1; old dual-GPU partial output discarded | Produced 3769 frames and 3769 meta rows |
 | P0 | L3 PointPillars gate | failed | Evaluated `outputs/asap_loss_l3_density/kitti/E2.2_perturbation` with PointPillars on GPU 1 | Failed: 61.1388 / 34.3561 |
 | P0 | L1b `anchor085` purification | done | Purified KITTI E2.2 with L1 checkpoint, `score_anchor_blend=0.85`, `t_star=0.08`, GPU 1 only | Produced 3769 frames and 3769 meta rows |
-| P0 | L1b `anchor085` PointPillars gate | active | Evaluate L1b purified split with PointPillars on GPU 1 | Pass if mAP >= 34.7457 or sparse-class AP recovers with mAP within -0.05 |
-| P1 | L1b PV-RCNN confirmation | conditional | Run only if PointPillars gate passes | Improve PV-RCNN mAP over 6.4569, or improve Pedestrian while keeping mAP near L1 |
-| P2 | L1c `step07` inference check | candidate | If L1b fails, purify with L1 checkpoint, `score_step_size=0.7`, anchor blend 0.75 | Test whether smaller score displacement protects sparse classes |
+| P0 | L1b `anchor085` PointPillars gate | failed | Evaluated L1b purified split with PointPillars on GPU 1 | Failed: 60.4571 / 34.1900 |
+| P0 | L1c `step07` purification | active | Purify with L1 checkpoint, `score_step_size=0.7`, anchor blend 0.75, GPU 1 only | Produce 3769 frames and 3769 meta rows |
+| P0 | L1c `step07` PointPillars gate | pending | Evaluate L1c purified split with PointPillars on GPU 1 | Pass if mAP >= 34.7457 or sparse-class AP recovers with mAP within -0.05 |
+| P1 | L1c PV-RCNN confirmation | conditional | Run only if PointPillars gate passes | Improve PV-RCNN mAP over 6.4569, or improve Pedestrian while keeping mAP near L1 |
 | P3 | L3b low-weight density | downgraded | Train `density` with `lambda_density=0.01` only if inference-side checks also fail | Current L3 failed by large mAP drop, so do not prioritize more density training |
 | P3 | Paired fine-tune | deferred | Fine-tune from L1/L3 only after a stable loss base exists | Avoid detector-aware claims until clean evidence exists |
 
@@ -84,6 +85,14 @@
 - Result: **3769 / 3769** purified frames and **3769** metadata rows.
 - Metadata ratios: **27.78%** flagged SPUs, **23.71%** score-net SPUs, **21.93%** edited points, no support-filter drops.
 - Status: purification succeeded; PointPillars gate is active.
+
+### L1b `anchor085` PointPillars gate
+
+- Result: PointPillars **60.4571 / 34.1900**.
+- Comparison to L1: Car **-0.8933**, mAP **-0.5557**, Pedestrian **-0.9679**, Cyclist **+0.1940**.
+- Decision: failed gate; PV-RCNN not run.
+- Interpretation: higher anchor blend is too conservative. It slightly helps Cyclist but harms Car and Pedestrian enough to make the variant unusable.
+- Plan correction: try `L1c_step07`, keeping anchor blend at 0.75 but reducing `score_step_size` to 0.7 to shrink score displacement more evenly.
 
 ## Next Candidate Design Rules
 
