@@ -31,8 +31,8 @@
 | P0 | R1 fixed-r040 PV-RCNN confirmation | failed | Evaluated existing E5.1 fixed `r=0.40` full output with PV-RCNN on GPU 1 | Failed: 10.9612 / 6.1344 |
 | P1 | R2 L1 fixed-r040 purification | skipped | R1 did not transfer to PV-RCNN | Do not spend a full purification on this radius branch |
 | P0 | L4 paired fine-tune implementation | done | Implemented `geo_density_pair`, `--paired_attacked_dir`, `--pair_fraction`, `--lambda_pair`, and `--init_ckpt` | GPU1 smoke passed and checkpoint metadata is correct |
-| P0 | L4 paired fine-tune training | active | Fine-tune from L1 on clean + E2.2 paired patches using GPU 1 in tmux | Train 5 epochs, finite losses, checkpoint metadata records paired settings |
-| P0 | L4 E2.2 purification | pending | Purify KITTI E2.2 using L4 checkpoint on GPU 1 | Produce 3769 frames and 3769 meta rows |
+| P0 | L4 paired fine-tune training | done | Fine-tuned from L1 on clean + E2.2 paired patches using GPU 1 in tmux | 5 epochs complete; checkpoint metadata records paired settings |
+| P0 | L4 E2.2 purification | active | Purify KITTI E2.2 using L4 checkpoint on GPU 1 | Produce 3769 frames and 3769 meta rows |
 | P0 | L4 PointPillars gate | pending | Evaluate L4 purified split on GPU 1 | Pass if mAP >= 34.7457 or sparse classes improve with mAP within -0.05 |
 | P3 | L3b low-weight density | downgraded | Train `density` with `lambda_density=0.01` only if inference-side checks also fail | Current L3 failed by large mAP drop, so do not prioritize more density training |
 | P3 | Paired fine-tune | promoted | Promoted to L4 after L1b/L1c/L1d/R1 all failed | Detector-agnostic attacked-clean geometry pairing is the next distinct mechanism |
@@ -139,6 +139,18 @@
 - Result: finite loss **0.335084**, DSM **0.332419**, weighted density **0.000987**, raw density **0.098709**, pair **0.006712**.
 - Metadata: `loss_profile=geo_density_pair`, `pair_fraction=0.25`, `lambda_pair=0.25`, `lambda_density=0.01`, `init_ckpt=...loss_l1_time_sigma2.pth`.
 - Decision: implementation passed; start full GPU1-only L4 fine-tune.
+
+### L4 `geo_density_pair` full fine-tune
+
+- tmux session: `asap_l4_pair_ft_train_gpu1_20260609_044022`.
+- Checkpoint: `checkpoints/kitti/asap_score_net_loss_l4_pair_ft.pth`.
+- Initialization: `checkpoints/kitti/asap_score_net_loss_l1_time_sigma2.pth`.
+- GPU rule: GPU1 only (`CUDA_VISIBLE_DEVICES=1`), no DataParallel.
+- Clean data: 256 KITTI frames, 64 patches/frame, **16384** clean patches.
+- Paired data: 256 KITTI E2.2 attacked-clean frames, 32 paired patches/frame, **8192** paired patches.
+- Settings: `loss_profile=geo_density_pair`, `pair_fraction=0.25`, `lambda_pair=0.25`, `lambda_density=0.01`, `density_k=8`, 5 epochs, 640 steps.
+- Final epoch: loss **0.367235**, DSM **0.360601**, weighted density **0.000812**, raw density **0.081187**, pair **0.023289**.
+- Decision: training succeeded; start GPU1-only KITTI E2.2 purification.
 
 ## Conditional Breakthrough Queue
 
