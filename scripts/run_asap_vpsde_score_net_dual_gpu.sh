@@ -13,6 +13,7 @@
 #   SCORE_BATCH_SPUS=64
 #   SCORE_ANCHOR_BLEND=0.0
 #   TAU_OVERRIDE=
+#   POLICY_MIN_VOTES=                  # optional purifier vote threshold
 #   SCORE_INJECTION_FILTER_RADIUS=0.0
 #   SCORE_INJECTION_FILTER_MIN_NEIGHBORS=0
 #   SCORE_FILTER_ATTACK_KINDS=injection
@@ -51,6 +52,7 @@ SCORE_CLIP="${SCORE_CLIP:-3.0}"
 SCORE_BATCH_SPUS="${SCORE_BATCH_SPUS:-64}"
 SCORE_ANCHOR_BLEND="${SCORE_ANCHOR_BLEND:-0.0}"
 TAU_OVERRIDE="${TAU_OVERRIDE:-}"
+POLICY_MIN_VOTES="${POLICY_MIN_VOTES:-}"
 SCORER_JSON="${SCORER_JSON:-}"
 SCORE_INJECTION_FILTER_RADIUS="${SCORE_INJECTION_FILTER_RADIUS:-0.0}"
 SCORE_INJECTION_FILTER_MIN_NEIGHBORS="${SCORE_INJECTION_FILTER_MIN_NEIGHBORS:-0}"
@@ -112,6 +114,10 @@ run_one () {
         if [ -n "${TAU_OVERRIDE}" ]; then
             tau_args=(--tau "${TAU_OVERRIDE}")
         fi
+        local vote_args=()
+        if [ -n "${POLICY_MIN_VOTES}" ]; then
+            vote_args=(--policy_min_votes "${POLICY_MIN_VOTES}")
+        fi
         local max_center_args=()
         if [ -n "${SPU_MAX_CENTERS}" ]; then
             max_center_args=(--spu_max_centers "${SPU_MAX_CENTERS}")
@@ -123,6 +129,7 @@ run_one () {
             --scorer_json "${cfg}" \
             --purifier vp_sde \
             "${tau_args[@]}" \
+            "${vote_args[@]}" \
             --spu_alpha "${SPU_ALPHA}" \
             --spu_beta "${SPU_BETA}" \
             --spu_r_min "${SPU_R_MIN}" \

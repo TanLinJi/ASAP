@@ -464,6 +464,15 @@ def main():
     parser.add_argument("--meta_jsonl", default=None, help="Per-frame metadata JSONL")
     parser.add_argument("--purifier", choices=["drop", "vp_sde", "hybrid"], default="drop")
     parser.add_argument("--tau", type=float, default=None, help="Override decision threshold")
+    parser.add_argument(
+        "--policy_min_votes",
+        type=int,
+        default=None,
+        help=(
+            "Minimum number of flagged SPU inner-ball votes required before a point "
+            "is edited or dropped by the purifier. Default uses the purifier config."
+        ),
+    )
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument(
         "--num_features",
@@ -654,6 +663,8 @@ def main():
         return
 
     purifier_cfg = PurifierConfig(tau=scorer_cfg.tau)
+    if args.policy_min_votes is not None:
+        purifier_cfg.policy_min_votes = max(1, int(args.policy_min_votes))
     if args.t_star is not None:
         purifier_cfg.t_star = args.t_star
     if args.score_net_ckpt is not None:

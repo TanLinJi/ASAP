@@ -26,7 +26,7 @@
 | P0 | L1c `step07` purification | active | tmux `asap_l1c_step07_e22_purify_gpu1_20260609_000556`; purify with L1 checkpoint, `score_step_size=0.7`, anchor blend 0.75, GPU 1 only | Produce 3769 frames and 3769 meta rows |
 | P0 | L1c `step07` PointPillars gate | pending | Evaluate L1c purified split with PointPillars on GPU 1 | Pass if mAP >= 34.7457 or sparse-class AP recovers with mAP within -0.05 |
 | P1 | L1c PV-RCNN confirmation | conditional | Run only if PointPillars gate passes | Improve PV-RCNN mAP over 6.4569, or improve Pedestrian while keeping mAP near L1 |
-| P1 | L1d edit-vote gate | conditional | If L1c fails, expose `policy_min_votes` for VP-SDE and test a small `policy_min_votes=2` diagnostic before full purification | Only promote if it reduces over-editing without repeating the stricter-`tau` sparse-class collapse |
+| P1 | L1d edit-vote gate | conditional | If L1c fails, run `policy_min_votes=2` diagnostic before full purification; CLI/env support is implemented | Only promote if it reduces over-editing without repeating the stricter-`tau` sparse-class collapse |
 | P3 | L3b low-weight density | downgraded | Train `density` with `lambda_density=0.01` only if inference-side checks also fail | Current L3 failed by large mAP drop, so do not prioritize more density training |
 | P3 | Paired fine-tune | deferred | Fine-tune from L1/L3 only after a stable loss base exists | Avoid detector-aware claims until clean evidence exists |
 
@@ -102,7 +102,7 @@
 - Trigger: run only if L1c fails the PointPillars gate.
 - Diagnosis targeted: L2/L3/L1b suggest the main failure is not insufficient denoising capacity; it is likely editing the wrong subset or over-stabilizing useful sparse evidence.
 - Code status: `PurifierConfig.policy_min_votes` already exists, but the CLI does not expose it for VP-SDE runs.
-- Proposed change: add a minimal `--policy_min_votes` parser option and pass it into `PurifierConfig`.
+- Code change: `--policy_min_votes` and `POLICY_MIN_VOTES` are now exposed for VP-SDE scripts, with default behavior unchanged.
 - Experiment shape: first run an 8-frame smoke/metadata diagnostic with `policy_min_votes=2`; only launch full KITTI E2.2 purification if edited-point ratio drops moderately without collapsing score-SPU coverage.
 - Risk: stricter `tau` already failed badly, so this must be treated as a targeted coverage diagnostic, not as a broad "edit less" sweep.
 
