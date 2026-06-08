@@ -28,10 +28,14 @@
 | P1 | L1c PV-RCNN confirmation | skipped | PointPillars gate failed | Do not spend PV-RCNN time on this branch |
 | P0 | L1d edit-vote smoke | failed | Ran `policy_min_votes=2` 8-frame metadata diagnostic on GPU 1 | Failed: edited points collapsed from 23.05% to 2.51% on matched frames |
 | P1 | L1d edit-vote full gate | skipped | Smoke coverage was too conservative | Do not run full purification/eval |
-| P0 | R1 fixed-r040 PV-RCNN confirmation | active | Evaluate existing E5.1 fixed `r=0.40` full output with PV-RCNN on GPU 1 | Promote only if PV-RCNN mAP improves over 6.4569 or sparse classes recover without a large Car drop |
-| P1 | R2 L1 fixed-r040 purification | conditional | If R1 transfers to PV-RCNN, rerun fixed `r=0.40` using the L1 checkpoint and `t_star=0.08` | Test whether L1 loss plus fixed radius can improve both mAP and detector transfer |
+| P0 | R1 fixed-r040 PV-RCNN confirmation | failed | Evaluated existing E5.1 fixed `r=0.40` full output with PV-RCNN on GPU 1 | Failed: 10.9612 / 6.1344 |
+| P1 | R2 L1 fixed-r040 purification | skipped | R1 did not transfer to PV-RCNN | Do not spend a full purification on this radius branch |
+| P0 | L4 paired fine-tune implementation | done | Implemented `geo_density_pair`, `--paired_attacked_dir`, `--pair_fraction`, `--lambda_pair`, and `--init_ckpt` | GPU1 smoke passed and checkpoint metadata is correct |
+| P0 | L4 paired fine-tune training | active | Fine-tune from L1 on clean + E2.2 paired patches using GPU 1 in tmux | Train 5 epochs, finite losses, checkpoint metadata records paired settings |
+| P0 | L4 E2.2 purification | pending | Purify KITTI E2.2 using L4 checkpoint on GPU 1 | Produce 3769 frames and 3769 meta rows |
+| P0 | L4 PointPillars gate | pending | Evaluate L4 purified split on GPU 1 | Pass if mAP >= 34.7457 or sparse classes improve with mAP within -0.05 |
 | P3 | L3b low-weight density | downgraded | Train `density` with `lambda_density=0.01` only if inference-side checks also fail | Current L3 failed by large mAP drop, so do not prioritize more density training |
-| P3 | Paired fine-tune | deferred | Fine-tune from L1/L3 only after a stable loss base exists | Avoid detector-aware claims until clean evidence exists |
+| P3 | Paired fine-tune | promoted | Promoted to L4 after L1b/L1c/L1d/R1 all failed | Detector-agnostic attacked-clean geometry pairing is the next distinct mechanism |
 
 ## Failure Log
 
@@ -117,6 +121,25 @@
 - Interpretation: requiring two flagged SPU votes is not a moderate support-aware correction. It removes almost all edits and would likely repeat the stricter-`tau` under-editing failure.
 - Plan correction: move away from vote thresholding. The best existing PointPillars mAP evidence is E5.1 fixed `r=0.40` (**61.0645 / 34.9196**), so run PV-RCNN confirmation on that already-complete output before spending time on new full purification.
 
+### R1 fixed `r=0.40` PV-RCNN confirmation
+
+- PointPillars prior from E5.1: **61.0645 / 34.9196**, Pedestrian **12.0363**, Cyclist **31.6580**.
+- PV-RCNN result: **10.9612 / 6.1344**, Pedestrian **0.6860**, Cyclist **6.7560**.
+- Comparison to L1 PV-RCNN: Car **-0.2722**, mAP **-0.3225**, Pedestrian **+0.0314**, Cyclist **-0.7268**.
+- Decision: failed transfer; do not run R2 L1 fixed-r040 full purification.
+- Interpretation: fixed `r=0.40` is a PointPillars mAP tradeoff and remains useful as an E5.1 ablation, but it does not solve the cross-detector ICASSP risk.
+- Plan correction: move to L4 attacked-clean paired fine-tuning, which changes training exposure rather than editing magnitude/radius.
+
+### L4 `geo_density_pair` implementation smoke
+
+- Code: `scripts/train_vpsde_score_net.py`.
+- New options: `loss_profile=geo_density_pair`, `--paired_attacked_dir`, `--paired_max_frames`, `--paired_patches_per_frame`, `--pair_fraction`, `--lambda_pair`, `--init_ckpt`.
+- Smoke command: GPU1, 1 clean frame, 1 paired E2.2 frame, 4 patches/frame, 1 epoch, initialized from L1.
+- Smoke checkpoint: `checkpoints/kitti/asap_score_net_loss_l4_pair_smoke.pth`.
+- Result: finite loss **0.335084**, DSM **0.332419**, weighted density **0.000987**, raw density **0.098709**, pair **0.006712**.
+- Metadata: `loss_profile=geo_density_pair`, `pair_fraction=0.25`, `lambda_pair=0.25`, `lambda_density=0.01`, `init_ckpt=...loss_l1_time_sigma2.pth`.
+- Decision: implementation passed; start full GPU1-only L4 fine-tune.
+
 ## Conditional Breakthrough Queue
 
 ### L1d `edit_vote2`
@@ -135,6 +158,13 @@
 - Cost advantage: no new purification needed for R1; reuse `outputs/ablations/E5.1_fixed_radius/fixed_r040/kitti/E2.2_perturbation`.
 - Risk: it may be a PointPillars-only mAP tradeoff because Car AP is lower than L1 and the fixed radius edits more points.
 - Decision rule: if PV-RCNN improves over **6.4569** mAP, promote fixed-radius combination for a stronger follow-up; otherwise treat fixed `r=0.40` as an ablation-only diagnostic.
+
+### L4 `geo_density_pair`
+
+- Trigger: active after R1 failed cross-detector transfer.
+- Rationale: L1b/L1c changed displacement magnitude, L1d changed edit coverage, and R1 changed radius; none produced a cross-detector improvement. L4 targets the remaining likely gap: the score-net has never seen actual attacked geometry during training.
+- Training plan: initialize from L1, use `loss_profile=geo_density_pair`, `pair_fraction=0.25`, `lambda_pair=0.25`, `lambda_density=0.01`, 5 epochs, GPU 1 only.
+- Gate: run PointPillars first. PV-RCNN only if PointPillars mAP is not worse than L1 by more than **0.05** or sparse-class AP clearly improves.
 
 ## Next Candidate Design Rules
 

@@ -28,6 +28,7 @@ import numpy as np
 from asap.diffusion.score_net import (
     ScoreNetConfig,
     create_score_net,
+    load_score_net_checkpoint,
     save_score_net_checkpoint,
     sample_fixed_patch,
 )
@@ -36,7 +37,7 @@ from asap.geometry import AdaptiveSPUBuilder, SPUConfig
 logger = logging.getLogger(__name__)
 
 
-LOSS_PROFILES = ("score_mse", "time_sigma2", "geo", "density")
+LOSS_PROFILES = ("score_mse", "time_sigma2", "geo", "density", "geo_density_pair")
 
 
 def require_torch():
@@ -90,6 +91,96 @@ def load_patch_pool(
     return np.stack(patches, axis=0).astype(np.float32)
 
 
+def sample_paired_fixed_patch(
+    clean_xyz: np.ndarray,
+    attacked_xyz: np.ndarray,
+    center: np.ndarray,
+    radius: float,
+    patch_size: int,
+    rng: np.random.Generator,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Sample aligned clean/attacked normalized patches for perturbation pairs."""
+    radius = float(max(radius, 1e-4))
+    if len(clean_xyz) == 0:
+        clean_norm = np.zeros((1, 3), dtype=np.float32)
+        attacked_norm = np.zeros((1, 3), dtype=np.float32)
+    else:
+        clean_norm = (clean_xyz - center[None, :]) / radius
+        attacked_norm = (attacked_xyz - center[None, :]) / radius
+    replace = len(clean_norm) < patch_size
+    idx = rng.choice(len(clean_norm), size=patch_size, replace=replace)
+    return clean_norm[idx].astype(np.float32), attacked_norm[idx].astype(np.float32)
+
+
+def load_paired_patch_pool(
+    clean_dir: str,
+    attacked_dir: str,
+    cfg: ScoreNetConfig,
+    max_frames: int,
+    patches_per_frame: int,
+    seed: int,
+    num_features: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Load aligned clean/attacked patch pairs for E2.2 perturbation fine-tuning."""
+    rng = np.random.default_rng(seed)
+    clean_root = Path(clean_dir)
+    attacked_root = Path(attacked_dir)
+    files = [p for p in sorted(attacked_root.glob("*.bin")) if (clean_root / p.name).exists()]
+    if max_frames > 0:
+        files = files[:max_frames]
+    if not files:
+        raise FileNotFoundError(f"No paired .bin files found in {clean_dir} and {attacked_dir}")
+
+    builder = AdaptiveSPUBuilder(SPUConfig())
+    clean_patches = []
+    attacked_patches = []
+    for frame_idx, attacked_path in enumerate(files):
+        clean_path = clean_root / attacked_path.name
+        clean_pts = np.fromfile(clean_path, dtype=np.float32).reshape(-1, num_features)
+        attacked_pts = np.fromfile(attacked_path, dtype=np.float32).reshape(-1, num_features)
+        if len(clean_pts) != len(attacked_pts):
+            logger.warning(
+                "skipping %s: clean/attacked point counts differ (%d vs %d)",
+                attacked_path.name,
+                len(clean_pts),
+                len(attacked_pts),
+            )
+            continue
+        spus = builder.build(clean_pts, seed=seed + frame_idx)
+        if not spus:
+            continue
+        chosen = rng.choice(len(spus), size=min(patches_per_frame, len(spus)), replace=False)
+        clean_xyz = clean_pts[:, :3]
+        attacked_xyz = attacked_pts[:, :3]
+        for si in chosen:
+            spu = spus[int(si)]
+            idx = np.asarray(spu["inner_idx"], dtype=np.int64)
+            clean_patch, attacked_patch = sample_paired_fixed_patch(
+                clean_xyz[idx],
+                attacked_xyz[idx],
+                center=spu["center"],
+                radius=spu["r2"],
+                patch_size=cfg.patch_size,
+                rng=rng,
+            )
+            clean_patches.append(np.clip(clean_patch, -cfg.max_coord, cfg.max_coord))
+            attacked_patches.append(np.clip(attacked_patch, -cfg.max_coord, cfg.max_coord))
+        logger.info(
+            "loaded paired frame %s (%d/%d), pair_patches=%d",
+            attacked_path.name,
+            frame_idx + 1,
+            len(files),
+            len(clean_patches),
+        )
+
+    if not clean_patches:
+        raise RuntimeError("No paired patches sampled; check clean_dir and attacked_dir.")
+    return (
+        np.stack(clean_patches, axis=0).astype(np.float32),
+        np.stack(attacked_patches, axis=0).astype(np.float32),
+    )
+
+
 def score_matching_loss(pred, target, sigma, profile: str):
     """Compute a configurable denoising-score matching loss.
 
@@ -101,7 +192,7 @@ def score_matching_loss(pred, target, sigma, profile: str):
     per_sample = err.mean(dim=(1, 2))
     if profile == "score_mse":
         weight = 1.0
-    elif profile in {"time_sigma2", "geo", "density"}:
+    elif profile in {"time_sigma2", "geo", "density", "geo_density_pair"}:
         weight = sigma.detach() ** 2
     else:
         raise ValueError(f"Unknown loss profile: {profile}")
@@ -186,8 +277,32 @@ def train(args):
     )
     logger.info("training patches: %s", patches.shape)
 
+    pair_clean_np = None
+    pair_attacked_np = None
+    pair_clean = None
+    pair_attacked = None
+    if args.loss_profile == "geo_density_pair" or args.pair_fraction > 0.0:
+        if not args.paired_attacked_dir:
+            raise ValueError("--paired_attacked_dir is required for paired fine-tuning")
+        pair_clean_np, pair_attacked_np = load_paired_patch_pool(
+            clean_dir=args.clean_dir,
+            attacked_dir=args.paired_attacked_dir,
+            cfg=cfg,
+            max_frames=args.paired_max_frames if args.paired_max_frames is not None else args.max_frames,
+            patches_per_frame=args.paired_patches_per_frame,
+            seed=args.seed + 10000,
+            num_features=args.num_features,
+        )
+        logger.info("paired patches: clean=%s attacked=%s", pair_clean_np.shape, pair_attacked_np.shape)
+
     device = torch.device(args.device)
-    model = create_score_net(cfg).to(device)
+    if args.init_ckpt:
+        model, ckpt_cfg, _ = load_score_net_checkpoint(args.init_ckpt, device=args.device)
+        if ckpt_cfg != cfg:
+            raise ValueError(f"--init_ckpt config {ckpt_cfg} does not match requested config {cfg}")
+        logger.info("initialized model from %s", args.init_ckpt)
+    else:
+        model = create_score_net(cfg).to(device)
     use_data_parallel = bool(args.data_parallel)
     if use_data_parallel:
         if device.type != "cuda":
@@ -204,6 +319,9 @@ def train(args):
             logger.info("enabled DataParallel over %d visible CUDA devices", torch.cuda.device_count())
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     data = torch.from_numpy(patches)
+    if pair_clean_np is not None:
+        pair_clean = torch.from_numpy(pair_clean_np)
+        pair_attacked = torch.from_numpy(pair_attacked_np)
     rng = torch.Generator(device="cpu")
     rng.manual_seed(args.seed)
 
@@ -218,6 +336,7 @@ def train(args):
         centroid_total = 0.0
         cov_total = 0.0
         density_total = 0.0
+        pair_total = 0.0
         count = 0
         for start in range(0, n, args.batch_size):
             idx = perm[start : start + args.batch_size]
@@ -232,6 +351,7 @@ def train(args):
 
             pred = model(xt, t)
             dsm_loss = score_matching_loss(pred, target, sigma, args.loss_profile)
+            pair_loss = x0.new_zeros(())
             if args.loss_profile == "geo":
                 x_hat = (xt + (sigma[:, None, None] ** 2) * pred) / torch.sqrt(abar)[:, None, None]
                 geo_loss, geo_parts = geometry_consistency_loss(
@@ -254,9 +374,43 @@ def train(args):
                     "geo": geo_loss.detach(),
                 }
                 loss = dsm_loss + geo_loss
+            elif args.loss_profile == "geo_density_pair":
+                x_hat = (xt + (sigma[:, None, None] ** 2) * pred) / torch.sqrt(abar)[:, None, None]
+                density_loss = density_spacing_loss(x_hat, x0, args.density_k)
+                geo_loss = args.lambda_density * density_loss
+                geo_parts = {
+                    "chamfer": x0.new_zeros(()),
+                    "centroid": x0.new_zeros(()),
+                    "cov": x0.new_zeros(()),
+                    "geo": geo_loss.detach(),
+                }
+                pair_loss = x0.new_zeros(())
+                if pair_clean is not None and args.pair_fraction > 0.0:
+                    pair_batch = max(1, int(round(b * args.pair_fraction)))
+                    pair_idx = torch.randint(len(pair_clean), (pair_batch,), generator=rng)
+                    pair_x0 = pair_clean[pair_idx].to(device)
+                    pair_xa = pair_attacked[pair_idx].to(device)
+                    pair_t = torch.rand(pair_batch, device=device) * (cfg.t_max - cfg.t_eps) + cfg.t_eps
+                    pair_abar = torch.exp(
+                        -cfg.beta_min * pair_t
+                        - 0.5 * (cfg.beta_max - cfg.beta_min) * pair_t * pair_t
+                    )
+                    pair_sigma = torch.sqrt(torch.clamp(1.0 - pair_abar, min=1e-6))
+                    pair_eps = torch.randn_like(pair_xa)
+                    pair_xt = (
+                        torch.sqrt(pair_abar)[:, None, None] * pair_xa
+                        + pair_sigma[:, None, None] * pair_eps
+                    )
+                    pair_pred = model(pair_xt, pair_t)
+                    pair_xhat = (
+                        pair_xt + (pair_sigma[:, None, None] ** 2) * pair_pred
+                    ) / torch.sqrt(pair_abar)[:, None, None]
+                    pair_loss = torch.nn.functional.smooth_l1_loss(pair_xhat, pair_x0)
+                loss = dsm_loss + geo_loss + args.lambda_pair * pair_loss
             else:
                 geo_loss = x0.new_zeros(())
                 density_loss = geo_loss
+                pair_loss = geo_loss
                 geo_parts = {
                     "chamfer": geo_loss,
                     "centroid": geo_loss,
@@ -276,10 +430,11 @@ def train(args):
             centroid_total += float(geo_parts["centroid"].cpu()) * b
             cov_total += float(geo_parts["cov"].cpu()) * b
             density_total += float(density_loss.detach().cpu()) * b
+            pair_total += float(pair_loss.detach().cpu()) * b
             count += b
             steps += 1
         logger.info(
-            "epoch %d/%d loss=%.6f dsm=%.6f geo=%.6f chamfer=%.6f centroid=%.6f cov=%.6f density=%.6f",
+            "epoch %d/%d loss=%.6f dsm=%.6f geo=%.6f chamfer=%.6f centroid=%.6f cov=%.6f density=%.6f pair=%.6f",
             epoch + 1,
             args.epochs,
             total / max(count, 1),
@@ -289,6 +444,7 @@ def train(args):
             centroid_total / max(count, 1),
             cov_total / max(count, 1),
             density_total / max(count, 1),
+            pair_total / max(count, 1),
         )
 
     save_score_net_checkpoint(
@@ -308,7 +464,10 @@ def train(args):
             "lambda_cov": float(args.lambda_cov),
             "lambda_density": float(args.lambda_density),
             "density_k": int(args.density_k),
-            "pair_fraction": 0.0,
+            "pair_fraction": float(args.pair_fraction),
+            "lambda_pair": float(args.lambda_pair),
+            "paired_attacked_dir": str(Path(args.paired_attacked_dir).resolve()) if args.paired_attacked_dir else None,
+            "init_ckpt": str(Path(args.init_ckpt).resolve()) if args.init_ckpt else None,
             "note": "Track-A starter local VP-SDE score net",
         },
     )
@@ -342,7 +501,8 @@ def main():
             "Training objective. score_mse is the original DSM objective; "
             "time_sigma2 weights per-sample DSM by sigma_t^2; "
             "geo adds geometry consistency on top of time_sigma2; "
-            "density adds kNN spacing preservation on top of time_sigma2."
+            "density adds kNN spacing preservation on top of time_sigma2; "
+            "geo_density_pair adds attacked-clean paired Huber fine-tuning."
         ),
     )
     parser.add_argument(
@@ -374,6 +534,40 @@ def main():
         type=int,
         default=8,
         help="Number of nearest neighbors used by the L3 density profile.",
+    )
+    parser.add_argument(
+        "--paired_attacked_dir",
+        default=None,
+        help="Directory of attacked .bin files paired by filename with --clean_dir for L4.",
+    )
+    parser.add_argument(
+        "--paired_max_frames",
+        type=int,
+        default=None,
+        help="Maximum paired frames for L4; defaults to --max_frames.",
+    )
+    parser.add_argument(
+        "--paired_patches_per_frame",
+        type=int,
+        default=32,
+        help="Number of paired clean/attacked SPU patches sampled per paired frame.",
+    )
+    parser.add_argument(
+        "--pair_fraction",
+        type=float,
+        default=0.0,
+        help="Paired batch fraction used by geo_density_pair fine-tuning.",
+    )
+    parser.add_argument(
+        "--lambda_pair",
+        type=float,
+        default=0.25,
+        help="Weight for attacked-clean paired Huber reconstruction in L4.",
+    )
+    parser.add_argument(
+        "--init_ckpt",
+        default=None,
+        help="Optional score-net checkpoint used to initialize/fine-tune the model.",
     )
     parser.add_argument(
         "--num_features",
