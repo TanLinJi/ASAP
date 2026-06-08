@@ -23,10 +23,11 @@
 | P0 | L3 PointPillars gate | failed | Evaluated `outputs/asap_loss_l3_density/kitti/E2.2_perturbation` with PointPillars on GPU 1 | Failed: 61.1388 / 34.3561 |
 | P0 | L1b `anchor085` purification | done | Purified KITTI E2.2 with L1 checkpoint, `score_anchor_blend=0.85`, `t_star=0.08`, GPU 1 only | Produced 3769 frames and 3769 meta rows |
 | P0 | L1b `anchor085` PointPillars gate | failed | Evaluated L1b purified split with PointPillars on GPU 1 | Failed: 60.4571 / 34.1900 |
-| P0 | L1c `step07` purification | active | tmux `asap_l1c_step07_e22_purify_gpu1_20260609_000556`; purify with L1 checkpoint, `score_step_size=0.7`, anchor blend 0.75, GPU 1 only | Produce 3769 frames and 3769 meta rows |
-| P0 | L1c `step07` PointPillars gate | pending | Evaluate L1c purified split with PointPillars on GPU 1 | Pass if mAP >= 34.7457 or sparse-class AP recovers with mAP within -0.05 |
-| P1 | L1c PV-RCNN confirmation | conditional | Run only if PointPillars gate passes | Improve PV-RCNN mAP over 6.4569, or improve Pedestrian while keeping mAP near L1 |
-| P1 | L1d edit-vote gate | conditional | If L1c fails, run `policy_min_votes=2` diagnostic before full purification; CLI/env support is implemented | Only promote if it reduces over-editing without repeating the stricter-`tau` sparse-class collapse |
+| P0 | L1c `step07` purification | done | tmux `asap_l1c_step07_e22_purify_gpu1_20260609_000556`; L1 checkpoint, `score_step_size=0.7`, anchor blend 0.75, GPU 1 only | Produced 3769 frames and 3769 meta rows |
+| P0 | L1c `step07` PointPillars gate | failed | Evaluated L1c purified split with PointPillars on GPU 1 | Failed: 61.1926 / 34.2711 |
+| P1 | L1c PV-RCNN confirmation | skipped | PointPillars gate failed | Do not spend PV-RCNN time on this branch |
+| P0 | L1d edit-vote smoke | active | Run `policy_min_votes=2` 8-frame metadata diagnostic before full purification; CLI/env support is implemented | Promote only if edited-point ratio drops moderately without collapsing score-SPU coverage |
+| P1 | L1d edit-vote full gate | conditional | If the smoke metadata is plausible, purify full KITTI E2.2 and evaluate PointPillars | Only promote if it improves over L1 or recovers sparse classes with mAP within -0.05 |
 | P3 | L3b low-weight density | downgraded | Train `density` with `lambda_density=0.01` only if inference-side checks also fail | Current L3 failed by large mAP drop, so do not prioritize more density training |
 | P3 | Paired fine-tune | deferred | Fine-tune from L1/L3 only after a stable loss base exists | Avoid detector-aware claims until clean evidence exists |
 
@@ -94,6 +95,16 @@
 - Decision: failed gate; PV-RCNN not run.
 - Interpretation: higher anchor blend is too conservative. It slightly helps Cyclist but harms Car and Pedestrian enough to make the variant unusable.
 - Plan correction: try `L1c_step07`, keeping anchor blend at 0.75 but reducing `score_step_size` to 0.7 to shrink score displacement more evenly.
+
+### L1c `step07` PointPillars gate
+
+- Purification: **3769 / 3769** frames and **3769** metadata rows.
+- Metadata ratios: **27.78%** flagged SPUs, **23.71%** score-net SPUs, **21.93%** edited points, same coverage as L1/L1b/L3.
+- Result: PointPillars **61.1926 / 34.2711**.
+- Comparison to L1: Car **-0.1578**, mAP **-0.4746**, Pedestrian **-1.1019**, Cyclist **-0.6541**.
+- Decision: failed gate; PV-RCNN not run.
+- Interpretation: reducing step size does not protect sparse-class geometry. Because coverage is unchanged, the failure is not from selecting fewer or more SPUs; it is from the edited point subset still receiving harmful coordinate updates.
+- Plan correction: stop same-family anchor/step sweeps and move to L1d `edit_vote2`, a targeted test of whether requiring overlapping flagged SPUs can reduce harmful edits.
 
 ## Conditional Breakthrough Queue
 
