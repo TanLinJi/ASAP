@@ -23,9 +23,10 @@
 | P0 | L3 PointPillars gate | failed | Evaluated `outputs/asap_loss_l3_density/kitti/E2.2_perturbation` with PointPillars on GPU 1 | Failed: 61.1388 / 34.3561 |
 | P0 | L1b `anchor085` purification | done | Purified KITTI E2.2 with L1 checkpoint, `score_anchor_blend=0.85`, `t_star=0.08`, GPU 1 only | Produced 3769 frames and 3769 meta rows |
 | P0 | L1b `anchor085` PointPillars gate | failed | Evaluated L1b purified split with PointPillars on GPU 1 | Failed: 60.4571 / 34.1900 |
-| P0 | L1c `step07` purification | active | Purify with L1 checkpoint, `score_step_size=0.7`, anchor blend 0.75, GPU 1 only | Produce 3769 frames and 3769 meta rows |
+| P0 | L1c `step07` purification | active | tmux `asap_l1c_step07_e22_purify_gpu1_20260609_000556`; purify with L1 checkpoint, `score_step_size=0.7`, anchor blend 0.75, GPU 1 only | Produce 3769 frames and 3769 meta rows |
 | P0 | L1c `step07` PointPillars gate | pending | Evaluate L1c purified split with PointPillars on GPU 1 | Pass if mAP >= 34.7457 or sparse-class AP recovers with mAP within -0.05 |
 | P1 | L1c PV-RCNN confirmation | conditional | Run only if PointPillars gate passes | Improve PV-RCNN mAP over 6.4569, or improve Pedestrian while keeping mAP near L1 |
+| P1 | L1d edit-vote gate | conditional | If L1c fails, expose `policy_min_votes` for VP-SDE and test a small `policy_min_votes=2` diagnostic before full purification | Only promote if it reduces over-editing without repeating the stricter-`tau` sparse-class collapse |
 | P3 | L3b low-weight density | downgraded | Train `density` with `lambda_density=0.01` only if inference-side checks also fail | Current L3 failed by large mAP drop, so do not prioritize more density training |
 | P3 | Paired fine-tune | deferred | Fine-tune from L1/L3 only after a stable loss base exists | Avoid detector-aware claims until clean evidence exists |
 
@@ -94,9 +95,21 @@
 - Interpretation: higher anchor blend is too conservative. It slightly helps Cyclist but harms Car and Pedestrian enough to make the variant unusable.
 - Plan correction: try `L1c_step07`, keeping anchor blend at 0.75 but reducing `score_step_size` to 0.7 to shrink score displacement more evenly.
 
+## Conditional Breakthrough Queue
+
+### L1d `edit_vote2`
+
+- Trigger: run only if L1c fails the PointPillars gate.
+- Diagnosis targeted: L2/L3/L1b suggest the main failure is not insufficient denoising capacity; it is likely editing the wrong subset or over-stabilizing useful sparse evidence.
+- Code status: `PurifierConfig.policy_min_votes` already exists, but the CLI does not expose it for VP-SDE runs.
+- Proposed change: add a minimal `--policy_min_votes` parser option and pass it into `PurifierConfig`.
+- Experiment shape: first run an 8-frame smoke/metadata diagnostic with `policy_min_votes=2`; only launch full KITTI E2.2 purification if edited-point ratio drops moderately without collapsing score-SPU coverage.
+- Risk: stricter `tau` already failed badly, so this must be treated as a targeted coverage diagnostic, not as a broad "edit less" sweep.
+
 ## Next Candidate Design Rules
 
 - If PointPillars mAP drops by more than **0.05**, do not run PV-RCNN for that variant.
 - If a loss variant fails, the next variant must directly target the diagnosed failure mode.
 - Avoid stacking auxiliary losses after L3 unless PointPillars suggests a real sparse-class gain.
 - Prefer low-weight or inference-side checks over increasingly strong reconstruction objectives.
+- After L1c, do not continue same-family anchor/step sweeps unless detector metrics identify a specific class tradeoff worth isolating.
