@@ -32,7 +32,7 @@
 | P1 | R2 L1 fixed-r040 purification | skipped | R1 did not transfer to PV-RCNN | Do not spend a full purification on this radius branch |
 | P0 | L4 paired fine-tune implementation | done | Implemented `geo_density_pair`, `--paired_attacked_dir`, `--pair_fraction`, `--lambda_pair`, and `--init_ckpt` | GPU1 smoke passed and checkpoint metadata is correct |
 | P0 | L4 paired fine-tune training | done | Fine-tuned from L1 on clean + E2.2 paired patches using GPU 1 in tmux | 5 epochs complete; checkpoint metadata records paired settings |
-| P0 | L4 E2.2 purification | active | Purify KITTI E2.2 using L4 checkpoint on GPU 1 | Produce 3769 frames and 3769 meta rows |
+| P0 | L4 E2.2 purification | done | Purified KITTI E2.2 using L4 checkpoint on GPU 1 | Produced 3769 frames and 3769 meta rows |
 | P0 | L4 PointPillars gate | pending | Evaluate L4 purified split on GPU 1 | Pass if mAP >= 34.7457 or sparse classes improve with mAP within -0.05 |
 | P3 | L3b low-weight density | downgraded | Train `density` with `lambda_density=0.01` only if inference-side checks also fail | Current L3 failed by large mAP drop, so do not prioritize more density training |
 | P3 | Paired fine-tune | promoted | Promoted to L4 after L1b/L1c/L1d/R1 all failed | Detector-agnostic attacked-clean geometry pairing is the next distinct mechanism |
@@ -151,6 +151,19 @@
 - Settings: `loss_profile=geo_density_pair`, `pair_fraction=0.25`, `lambda_pair=0.25`, `lambda_density=0.01`, `density_k=8`, 5 epochs, 640 steps.
 - Final epoch: loss **0.367235**, DSM **0.360601**, weighted density **0.000812**, raw density **0.081187**, pair **0.023289**.
 - Decision: training succeeded; start GPU1-only KITTI E2.2 purification.
+
+### L4 `geo_density_pair` E2.2 purification
+
+- tmux session: `asap_l4_pair_ft_e22_purify_gpu1_20260609_044944`.
+- Checkpoint: `checkpoints/kitti/asap_score_net_loss_l4_pair_ft.pth`.
+- Output root: `outputs/asap_loss_l4_pair_ft/kitti/E2.2_perturbation/`.
+- Main log: `outputs/loss_upgrade/l4_pair_ft_purify_gpu1.log`.
+- GPU rule: GPU1 only (`GPUS=1`, `NUM_GPUS=1`, `CUDA_VISIBLE_DEVICES=1`).
+- Settings: `score_anchor_blend=0.75`, `t_star=0.08`, `score_step_size=1.0`, support filter disabled.
+- Result: **3769 / 3769** purified frames and **3769** metadata rows.
+- Metadata ratios: **27.78%** flagged SPUs, **23.71%** score-net SPUs, **21.93%** edited points, **21.64%** score-edited points.
+- Interpretation: L4 changes the trained score field but not the selection/edit coverage. This keeps the detector gate clean: improvements or failures should be attributed to score-field quality rather than a changed point budget.
+- Decision: purification succeeded; start the PointPillars gate.
 
 ## Conditional Breakthrough Queue
 
